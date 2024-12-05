@@ -1,5 +1,4 @@
 import { CompositeTilemap } from "@pixi/tilemap";
-import * as PIXI from "pixi.js"
 
 interface Layer {
     data: number[];
@@ -59,10 +58,6 @@ class Tilemap extends CompositeTilemap {
             throw "Invalid tilemap JSON data."
     }
 
-    registerAsChild(app: PIXI.Application) {
-        app.stage.addChild(this);
-    }
-
     renderLayerById(layerId: number) {
         for (const layer of this.layers) {
             console.log(layer.id);
@@ -74,11 +69,13 @@ class Tilemap extends CompositeTilemap {
         throw "No such layer Id"
     }
 
-    renderLayer(layer: Layer) {
+    private renderLayer(layer: Layer) {
+        const start_x = this.position.x;
+        const start_y = this.position.y;
         for (let x = 0; x < layer.width; x++) {
             for (let y = 0; y < layer.height; y++) {
                 console.log("rendering tile ", layer.data[(layer.width*x) + y] + " at " + x + ", " + y)
-                this.tile("tile_" + layer.data[(layer.width*y) + x] + ".png", x*16, y*16);
+                this.tile("tile_" + layer.data[(layer.width*y) + x] + ".png", start_x +x*16, start_y + y*16);
             }
         }
     }
