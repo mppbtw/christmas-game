@@ -13,8 +13,6 @@ class Player extends PIXI.Sprite {
         const sprite = PIXI.textureFrom(src);
         this.pixelWidth = sprite.width;
         this.pixelHeight = sprite.height;
-        console.log(this.pixelWidth);
-        console.log(this.pixelHeight);
     }
 }
 

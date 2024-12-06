@@ -10,12 +10,17 @@ PIXI.TextureStyle.defaultOptions.scaleMode = "nearest";
 
 const scale_factor = 3;
 const tile_unscaled_size = 16;
-const map_size = 5;
+const map_size = 100;
 
 const kbd = new Keyboard();
 
 const app = new PIXI.Application();
-await app.init({width: tile_unscaled_size*map_size*scale_factor, height: tile_unscaled_size*map_size*scale_factor, antialias: false, roundPixels: false, backgroundColor: "blue"});
+await app.init({width: tile_unscaled_size*map_size, height: tile_unscaled_size*map_size, antialias: false, roundPixels: true, backgroundColor: "blue"});
+
+const world = new PIXI.Container();
+world.width = tile_unscaled_size*map_size;
+world.width = tile_unscaled_size*map_size;
+app.stage.addChild(world);
 
 document.body.appendChild(app.canvas);
 
@@ -31,50 +36,57 @@ PIXI.Assets.add({alias: "tilemap", src: "assets/tilemap.json"});
 await PIXI.Assets.load(["atlas"])
 await PIXI.Assets.load(["tilemap"])
 
+
 const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), scale_factor, tile_unscaled_size);
-tilemap.position.set(20, 10);
-tilemap.scale = scale_factor;
-tilemap.worldTransform
+tilemap.position.set(0, 0);
 tilemap.renderLayerById(1);
-app.stage.addChild(tilemap);
+world.addChild(tilemap);
 
 const mid = PIXI.Sprite.from(PIXI.Assets.get("red.png"));
 mid.scale = scale_factor;
 mid.anchor.set(0.5);
 mid.x = app.canvas.width/2;
 mid.y = app.canvas.height/2;
-app.stage.addChild(mid);
+world.addChild(mid);
+
 
 const player = new Player("green.png");
-player.name = "Geoff Rungleman";
-player.health = 100;
 player.anchor.set(0.5);
-player.x = app.canvas.width/2;
-player.y = app.canvas.height/2;
+player.x = window.innerWidth/2;
+player.y = window.innerHeight/2;
+player.speed = 2;
+const playerSize = 20
 const playerAspectRatio = player.pixelWidth/player.pixelHeight;
-player.width = playerAspectRatio*scale_factor*40;
-player.height = scale_factor*40;
+player.width = playerAspectRatio*scale_factor*playerSize;
+player.height = scale_factor*playerSize;
 app.stage.addChild(player);
 
 app.ticker.add(() => kbd.pressedKeys.forEach(handleKey))
-app.ticker.add(handleCameraFollow)
+app.ticker.add(() => handleEnemyMovement(mid))
+
+
+function handleEnemyMovement(enemy: PIXI.Sprite) {
+  if (player.x > enemy.x + world.x) 
+    enemy.position.x += 1;
+  if (player.x < enemy.x + world.x)
+    enemy.x -= 1;
+  if (player.y > enemy.y + world.y) 
+    enemy.position.y += 1;
+  if (player.y < enemy.y + world.y)
+    enemy.y -= 1;
+}
 
 function handleKey(key: string) {
   if (key == "w") {
-    player.y -= player.speed*scale_factor;
+    world.y += player.speed*scale_factor;
   }
   if (key == "s") {
-    player.y += player.speed*scale_factor;
+    world.y -= player.speed*scale_factor;
   }
   if (key == "d") {
-    player.x += player.speed*scale_factor;
+    world.x -= player.speed*scale_factor;
   }
   if (key == "a") {
-    player.x -= player.speed*scale_factor;
+    world.x += player.speed*scale_factor;
   }
-}
-
-function handleCameraFollow() {
-  app.stage.pivot.x = player.x - window.innerWidth/2;
-  app.stage.pivot.y = player.y - window.innerHeight/2;
 }

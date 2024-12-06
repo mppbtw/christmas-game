@@ -60,8 +60,6 @@ class Tilemap extends CompositeTilemap {
 
     renderLayerById(layerId: number) {
         for (const layer of this.layers) {
-            console.log(layer.id);
-            console.log(layerId);
             if (layer.id === layerId)
                 this.renderLayer(layer)
                 return
@@ -74,7 +72,7 @@ class Tilemap extends CompositeTilemap {
         const start_y = this.position.y;
         for (let x = 0; x < layer.width; x++) {
             for (let y = 0; y < layer.height; y++) {
-                console.log("rendering tile ", layer.data[(layer.width*x) + y] + " at " + x + ", " + y)
+                console.log("rendering a tile at " + x + ", " + y)
                 this.tile("tile_" + layer.data[(layer.width*y) + x] + ".png", start_x +x*16, start_y + y*16);
             }
         }
