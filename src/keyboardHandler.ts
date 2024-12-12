@@ -1,8 +1,14 @@
 class Keyboard{
     public pressedKeys: string[] = [];
+    private clickHandlers: ClickHandler[] = [];
 
     constructor() {
         this.addListeners();
+    }
+
+    public addClickHandler(key: string, f: () => void) {
+        this.clickHandlers.push(new ClickHandler(key, f));
+
     }
 
     private addListeners() {
@@ -13,6 +19,11 @@ class Keyboard{
     private downHandler(e: KeyboardEvent) {
         if (!this.pressedKeys.includes(e.key))
             this.pressedKeys.push(e.key)
+
+        this.clickHandlers.forEach((h) => {
+            if (h.key == e.key)
+                h.f();
+        })
     }
 
     private upHandler(e: KeyboardEvent) {
@@ -21,4 +32,13 @@ class Keyboard{
         });
     }
 }
+class ClickHandler {
+    key: string;
+    f: () => void;
+    constructor(key: string, f: () => void) {
+        this.key = key;
+        this.f = f;
+    }
+}
+
 export { Keyboard }

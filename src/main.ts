@@ -1,6 +1,6 @@
 import "./style.css"
 import * as PIXI from "pixi.js"
-import { Tilemap } from "./tilemapParser.ts"
+import { Tilemap, HitBox } from "./tilemapParser.ts"
 import { Player } from "./player.ts"
 import { Keyboard } from "./keyboardHandler.ts"
 
@@ -12,14 +12,18 @@ const scale_factor = 3;
 const tile_unscaled_size = 16;
 const map_size = 100;
 
+
 const kbd = new Keyboard();
+let hitboxes_enabled = false;
+kbd.addClickHandler("h", () => {hitboxes_enabled = !hitboxes_enabled});
 
 const app = new PIXI.Application();
 await app.init({width: tile_unscaled_size*map_size, height: tile_unscaled_size*map_size, antialias: false, roundPixels: true, backgroundColor: "blue"});
 
 const world = new PIXI.Container();
 world.width = tile_unscaled_size*map_size;
-world.width = tile_unscaled_size*map_size;
+world.height = tile_unscaled_size*map_size;
+world.scale = scale_factor;
 app.stage.addChild(world);
 
 document.body.appendChild(app.canvas);
@@ -37,56 +41,121 @@ await PIXI.Assets.load(["atlas"])
 await PIXI.Assets.load(["tilemap"])
 
 
-const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), scale_factor, tile_unscaled_size);
+const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size);
 tilemap.position.set(0, 0);
 tilemap.renderLayerById(1);
+tilemap.loadCollisionLayer("Collision");
 world.addChild(tilemap);
 
 const mid = PIXI.Sprite.from(PIXI.Assets.get("red.png"));
-mid.scale = scale_factor;
 mid.anchor.set(0.5);
 mid.x = app.canvas.width/2;
 mid.y = app.canvas.height/2;
 world.addChild(mid);
 
 
-const player = new Player("green.png");
-player.anchor.set(0.5);
-player.x = window.innerWidth/2;
-player.y = window.innerHeight/2;
+const player = new Player(["green_1.png", "green_2.png", "green_3.png"]);
+player.x = 100;
+player.y = 100;
 player.speed = 2;
 const playerSize = 20
 const playerAspectRatio = player.pixelWidth/player.pixelHeight;
-player.width = playerAspectRatio*scale_factor*playerSize;
-player.height = scale_factor*playerSize;
-app.stage.addChild(player);
+player.width = playerAspectRatio*playerSize;
+player.height = playerSize;
+world.addChild(player);
 
-app.ticker.add(() => kbd.pressedKeys.forEach(handleKey))
-app.ticker.add(() => handleEnemyMovement(mid))
+const hbs = new PIXI.Graphics();
+world.addChild(hbs);
 
+app.ticker.add(() => kbd.pressedKeys.forEach(handleKey));
+app.ticker.add(() => {if (kbd.pressedKeys.length == 0) {player.gotoAndStop(0); player.isMoving = false}});
+app.ticker.add(() => handleEnemyMovement(mid));
+app.ticker.add(renderHitboxes);
+app.ticker.add(moveCamera);
+
+function renderHitboxes() {
+  if (hitboxes_enabled) {
+    hbs.clear();
+    hbs.rect(player.x, player.y, player.width, player.height);
+
+    tilemap.collisionLayer?.boxes.forEach(b => {
+      hbs.rect(b.x, b.y, b.width, b.height);
+    })
+
+
+    hbs.alpha = 0.5;
+    hbs.fill(0);
+
+
+  } else {
+    hbs.clear();
+  }
+}
+
+function moveCamera() {
+  world.position.set(app.renderer.screen.width/2, app.renderer.screen.height/2);
+  world.pivot.x = player.position.x+(player.width/2);
+  world.pivot.y = player.position.y+(player.height/2);
+}
 
 function handleEnemyMovement(enemy: PIXI.Sprite) {
-  if (player.x > enemy.x + world.x) 
+  if (player.x > enemy.x)
     enemy.position.x += 1;
-  if (player.x < enemy.x + world.x)
+
+  if (player.x < enemy.x)
     enemy.x -= 1;
-  if (player.y > enemy.y + world.y) 
+
+  if (player.y > enemy.y) 
     enemy.position.y += 1;
-  if (player.y < enemy.y + world.y)
+
+  if (player.y < enemy.y)
     enemy.y -= 1;
 }
 
 function handleKey(key: string) {
+  player.isMoving = false
   if (key == "w") {
-    world.y += player.speed*scale_factor;
+    const newHB = new HitBox(player.x, player.y-player.speed, player.width, player.height);
+    if (!tilemap.collisionLayer?.checkUpCollision(newHB)) {
+      player.y -= player.speed;
+      if (!player.isMoving) {
+        player.isMoving = true;
+      }
+    }
   }
   if (key == "s") {
-    world.y -= player.speed*scale_factor;
+    const newHB = new HitBox(player.x, player.y+player.speed, player.width, player.height);
+    if (!tilemap.collisionLayer?.checkDownCollision(newHB)) {
+      player.y += player.speed;
+      if (!player.isMoving) {
+        player.isMoving = true;
+      }
+    }
   }
   if (key == "d") {
-    world.x -= player.speed*scale_factor;
+    const newHB = new HitBox(player.x+player.speed, player.y, player.width, player.height);
+    if (!tilemap.collisionLayer?.checkRightCollision(newHB)) {
+      player.x += player.speed;
+      if (!player.isMoving) {
+        player.isMoving = true;
+      }
+    }
   }
   if (key == "a") {
-    world.x += player.speed*scale_factor;
+    const newHB = new HitBox(player.x-player.speed, player.y, player.width, player.height);
+    if (!tilemap.collisionLayer?.checkLeftCollison(newHB)) {
+      player.x -= player.speed;
+      if (!player.isMoving) {
+        player.isMoving = true;
+      }
+    }
+  }
+  if (player.isMoving) {
+    player.play();
+    if (player.currentFrame == 0) {
+      player.currentFrame = 1
+    }
+  } else {
+    player.gotoAndStop(0)
   }
 }
