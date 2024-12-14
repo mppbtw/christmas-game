@@ -6,9 +6,19 @@ class Keyboard{
         this.addListeners();
     }
 
-    public addClickHandler(key: string, f: () => void) {
+    addClickHandler(key: string, f: () => void) {
         this.clickHandlers.push(new ClickHandler(key, f));
 
+    }
+
+    isWasdPressed(): boolean {
+        for (let i = 0; i < this.pressedKeys.length; i++) {
+            const k = this.pressedKeys[i];
+            if (k == "w" || k == "a" || k == "s" || k == "d") {
+                return true
+            }
+        }
+        return false
     }
 
     private addListeners() {

@@ -1,4 +1,5 @@
 import "./style.css"
+import {Snow} from "./snow.ts"
 import * as PIXI from "pixi.js"
 import { Tilemap, HitBox } from "./tilemapParser.ts"
 import { Player } from "./player.ts"
@@ -18,7 +19,7 @@ let hitboxes_enabled = false;
 kbd.addClickHandler("h", () => {hitboxes_enabled = !hitboxes_enabled});
 
 const app = new PIXI.Application();
-await app.init({width: tile_unscaled_size*map_size, height: tile_unscaled_size*map_size, antialias: false, roundPixels: true, backgroundColor: "blue"});
+await app.init({width: tile_unscaled_size*map_size, height: tile_unscaled_size*map_size, antialias: false, roundPixels: false, backgroundColor: "blue"});
 
 const world = new PIXI.Container();
 world.width = tile_unscaled_size*map_size;
@@ -40,19 +41,11 @@ PIXI.Assets.add({alias: "tilemap", src: "assets/tilemap.json"});
 await PIXI.Assets.load(["atlas"])
 await PIXI.Assets.load(["tilemap"])
 
-
 const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size);
 tilemap.position.set(0, 0);
 tilemap.renderLayerById(1);
 tilemap.loadCollisionLayer("Collision");
 world.addChild(tilemap);
-
-const mid = PIXI.Sprite.from(PIXI.Assets.get("red.png"));
-mid.anchor.set(0.5);
-mid.x = app.canvas.width/2;
-mid.y = app.canvas.height/2;
-world.addChild(mid);
-
 
 const player = new Player(["green_1.png", "green_2.png", "green_3.png"]);
 player.x = 100;
@@ -64,12 +57,16 @@ player.width = playerAspectRatio*playerSize;
 player.height = playerSize;
 world.addChild(player);
 
+const snowTexture = PIXI.Texture.from("snow.png");
+const snow = new Snow(snowTexture, 10, window.innerWidth, window.innerHeight);
+app.stage.addChild(snow);
+
 const hbs = new PIXI.Graphics();
 world.addChild(hbs);
 
+app.ticker.add(() => snow.updateSnow());
 app.ticker.add(() => kbd.pressedKeys.forEach(handleKey));
-app.ticker.add(() => {if (kbd.pressedKeys.length == 0) {player.gotoAndStop(0); player.isMoving = false}});
-app.ticker.add(() => handleEnemyMovement(mid));
+app.ticker.add(() => {if (!kbd.isWasdPressed()) {player.gotoAndStop(0); player.isMoving = false}});
 app.ticker.add(renderHitboxes);
 app.ticker.add(moveCamera);
 
@@ -98,22 +95,7 @@ function moveCamera() {
   world.pivot.y = player.position.y+(player.height/2);
 }
 
-function handleEnemyMovement(enemy: PIXI.Sprite) {
-  if (player.x > enemy.x)
-    enemy.position.x += 1;
-
-  if (player.x < enemy.x)
-    enemy.x -= 1;
-
-  if (player.y > enemy.y) 
-    enemy.position.y += 1;
-
-  if (player.y < enemy.y)
-    enemy.y -= 1;
-}
-
 function handleKey(key: string) {
-  player.isMoving = false
   if (key == "w") {
     const newHB = new HitBox(player.x, player.y-player.speed, player.width, player.height);
     if (!tilemap.collisionLayer?.checkUpCollision(newHB)) {
@@ -150,6 +132,7 @@ function handleKey(key: string) {
       }
     }
   }
+
   if (player.isMoving) {
     player.play();
     if (player.currentFrame == 0) {
