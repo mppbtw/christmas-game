@@ -1,7 +1,7 @@
 import "./style.css"
 import {Snow} from "./snow.ts"
 import * as PIXI from "pixi.js"
-import { Tilemap, HitBox } from "./tilemapParser.ts"
+import { Tilemap, HitBox} from "./tilemapParser.ts"
 import { Player } from "./player.ts"
 import { Keyboard } from "./keyboardHandler.ts"
 
@@ -11,7 +11,7 @@ PIXI.TextureStyle.defaultOptions.scaleMode = "nearest";
 
 const scale_factor = 3;
 const tile_unscaled_size = 16;
-const map_size = 100;
+const map_size = 420;
 
 
 const kbd = new Keyboard();
@@ -19,7 +19,7 @@ let hitboxes_enabled = false;
 kbd.addClickHandler("h", () => {hitboxes_enabled = !hitboxes_enabled});
 
 const app = new PIXI.Application();
-await app.init({width: tile_unscaled_size*map_size, height: tile_unscaled_size*map_size, antialias: false, roundPixels: false, backgroundColor: "blue"});
+await app.init({width: tile_unscaled_size*map_size, height: tile_unscaled_size*map_size, antialias: false, roundPixels: true, backgroundColor: "blue"});
 
 const world = new PIXI.Container();
 world.width = tile_unscaled_size*map_size;
@@ -41,16 +41,14 @@ PIXI.Assets.add({alias: "tilemap", src: "assets/tilemap.json"});
 await PIXI.Assets.load(["atlas"])
 await PIXI.Assets.load(["tilemap"])
 
-const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size);
+const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 4);
 tilemap.position.set(0, 0);
-tilemap.renderLayerById(1);
-tilemap.loadCollisionLayer("Collision");
 world.addChild(tilemap);
 
 const player = new Player(["green_1.png", "green_2.png", "green_3.png"]);
 player.x = 100;
 player.y = 100;
-player.speed = 2;
+player.speed = 1;
 const playerSize = 20
 const playerAspectRatio = player.pixelWidth/player.pixelHeight;
 player.width = playerAspectRatio*playerSize;
@@ -58,7 +56,7 @@ player.height = playerSize;
 world.addChild(player);
 
 const snowTexture = PIXI.Texture.from("snow.png");
-const snow = new Snow(snowTexture, 10, window.innerWidth, window.innerHeight);
+const snow = new Snow(snowTexture,10, window.innerWidth, window.innerHeight);
 app.stage.addChild(snow);
 
 const hbs = new PIXI.Graphics();
@@ -75,10 +73,13 @@ function renderHitboxes() {
     hbs.clear();
     hbs.rect(player.x, player.y, player.width, player.height);
 
-    tilemap.collisionLayer?.boxes.forEach(b => {
-      hbs.rect(b.x, b.y, b.width, b.height);
-    })
-
+    const playerChunkX = Math.floor(Math.floor(player.x/tile_unscaled_size)/tilemap.chunkSize);
+    const playerChunkY = Math.floor(Math.floor(player.y/tile_unscaled_size)/tilemap.chunkSize);
+    if (tilemap.collisionLayer.chunks[playerChunkY] && tilemap.collisionLayer.chunks[playerChunkY][playerChunkX]) { 
+      tilemap.collisionLayer.chunks[playerChunkY][playerChunkX].boxes.forEach(b => {
+        hbs.rect(b.x, b.y, b.width, b.height);
+      })
+    }
 
     hbs.alpha = 0.5;
     hbs.fill(0);
@@ -96,9 +97,11 @@ function moveCamera() {
 }
 
 function handleKey(key: string) {
+  const playerChunkX = Math.floor(Math.floor(player.x/tile_unscaled_size)/tilemap.chunkSize);
+  const playerChunkY = Math.floor(Math.floor(player.y/tile_unscaled_size)/tilemap.chunkSize);
   if (key == "w") {
     const newHB = new HitBox(player.x, player.y-player.speed, player.width, player.height);
-    if (!tilemap.collisionLayer?.checkUpCollision(newHB)) {
+    if (!tilemap.collisionLayer.checkUpCollision(newHB, playerChunkX, playerChunkY)) {
       player.y -= player.speed;
       if (!player.isMoving) {
         player.isMoving = true;
@@ -107,7 +110,7 @@ function handleKey(key: string) {
   }
   if (key == "s") {
     const newHB = new HitBox(player.x, player.y+player.speed, player.width, player.height);
-    if (!tilemap.collisionLayer?.checkDownCollision(newHB)) {
+    if (!tilemap.collisionLayer.checkDownCollision(newHB, playerChunkX, playerChunkY)) {
       player.y += player.speed;
       if (!player.isMoving) {
         player.isMoving = true;
@@ -116,7 +119,7 @@ function handleKey(key: string) {
   }
   if (key == "d") {
     const newHB = new HitBox(player.x+player.speed, player.y, player.width, player.height);
-    if (!tilemap.collisionLayer?.checkRightCollision(newHB)) {
+    if (!tilemap.collisionLayer.checkRightCollision(newHB, playerChunkX, playerChunkY)) {
       player.x += player.speed;
       if (!player.isMoving) {
         player.isMoving = true;
@@ -125,7 +128,7 @@ function handleKey(key: string) {
   }
   if (key == "a") {
     const newHB = new HitBox(player.x-player.speed, player.y, player.width, player.height);
-    if (!tilemap.collisionLayer?.checkLeftCollison(newHB)) {
+    if (!tilemap.collisionLayer.checkLeftCollision(newHB, playerChunkX, playerChunkY)) {
       player.x -= player.speed;
       if (!player.isMoving) {
         player.isMoving = true;

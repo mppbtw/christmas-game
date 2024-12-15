@@ -16,7 +16,7 @@ class ParticleMotionData {
         this.sinCounterIncrease = Math.random()*0.1
         this.sinCounter = 0;
         this.rotation = 0;
-        this.rotationSpeed = Math.random() * 0.1 + 0.1
+        this.rotationSpeed = (Math.random() * 0.1) + 0.1
 
     }
 
@@ -42,7 +42,7 @@ class Snow extends PIXI.Container {
     particleContainer: PIXI.ParticleContainer;
     particleMotionDats: ParticleMotionData[] = [];
     pixelHeight: number = 0;
-    windDrift: number = 3;
+    windSpeed: number = 10;
     windDirection: boolean = false;
     flakeSpawnCounter = 0;
 
@@ -65,14 +65,18 @@ class Snow extends PIXI.Container {
         for (let j = 0; j < toSpawn; j++) {
             this.flakeSpawnCounter = 0;
             const snowflake = new PIXI.Particle(this.snowTexture);
-            if (this.windDirection) {
-                const max = (this.pixelWidth*this.windDrift)
-                const min = -this.pixelWidth*this.windDrift*0.5
-                snowflake.x = Math.random() * (max - min + max) + min;
+            if (this.windSpeed >= 1) {
+                if (this.windDirection) {
+                    const max = (this.pixelWidth*this.windSpeed)
+                    const min = -this.pixelWidth*this.windSpeed*0.5
+                    snowflake.x = Math.random() * (max - min + max) + min;
+                } else {
+                    const max = (this.pixelWidth*this.windSpeed) + this.pixelWidth*this.windSpeed*0.5;
+                    const min = 0
+                    snowflake.x = Math.random() * (max - min + max) + min;
+                }
             } else {
-                const max = (this.pixelWidth*this.windDrift) + this.pixelWidth*this.windDrift*0.5;
-                const min = 0
-                snowflake.x = Math.random() * (max - min + max) + min;
+                snowflake.x = (Math.random() * this.pixelWidth*1.2) - (0.2*this.pixelWidth);
             }
             snowflake.y = -100
             const max = 0.2;
@@ -95,12 +99,13 @@ class Snow extends PIXI.Container {
             p.x = this.particleMotionDats[i].getNextXMovement(p.x);
 
             if (this.windDirection) {
-                p.x += this.windDrift;
+                p.x += this.windSpeed;
+                p.rotation = this.particleMotionDats[i].rotation;
             } else {
-                p.x -= this.windDrift;
+                p.x -= this.windSpeed;
+                p.rotation = -this.particleMotionDats[i].rotation;
             }
             p.y = this.particleMotionDats[i].getNextYMovement(p.y);
-            p.rotation = this.particleMotionDats[i].rotation;
 
 
             if (p.y > this.pixelHeight) {

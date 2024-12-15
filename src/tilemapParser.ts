@@ -17,6 +17,13 @@ interface TilemapData {
     layers: Layer[];
 }
 
+interface TileObject {
+    height: number;
+    width: number;
+    x: number;
+    y: number;
+}
+
 function isLayer(obj: any): obj is Layer {
     return (
         Array.isArray(obj.data) &&
@@ -30,13 +37,6 @@ function isLayer(obj: any): obj is Layer {
         typeof obj.x === 'number' &&
         typeof obj.y === 'number'
     );
-}
-
-interface TileObject {
-    height: number;
-    width: number;
-    x: number;
-    y: number;
 }
 
 function isTileObject(obj: any): obj is TileObject {
@@ -85,52 +85,39 @@ function isLayersData(obj: any): obj is TilemapData {
 
 class Tilemap extends CompositeTilemap {
 
-    layers: Layer[]
-    public collisionLayer: CollisionLayer | undefined
+    baseLayer: Layer;
+    collisionLayer: CollisionLayer;
     tile_unscaled_size: number
+    chunkSize: number;
 
-    constructor(src: Object, tile_unscaled_size: number) {
+    constructor(src: Object, tile_unscaled_size: number, chunkSize: number) {
         super();
+        this.chunkSize = chunkSize;
         this.tile_unscaled_size = tile_unscaled_size;
-        this.layers = [];
-        if (isLayersData(src)) 
-            src.layers.forEach(layer => {
-                this.layers.push(layer)
-            })
-        else {
+        if (!isLayersData(src))  {
             throw "Invalid tilemap JSON data."
         }
-    }
+        const baseLayer = src.layers.find(l => l.name == "Base");
+        if (!baseLayer) {
+            throw "No baselayer found"
+        }
+        this.baseLayer = baseLayer;
 
-    loadCollisionLayer(layerName: string) {
-        for (const layer of this.layers) {
-            if (layer.name == layerName) {
-                if (isObjectLayer(layer)) {
-                    this.collisionLayer = new CollisionLayer(layer);
-                }
-            }
+        const collisionLayerData = src.layers.find(l => l.name == "Collision");
+        if (!collisionLayerData) {
+            throw "No collision layer found";
+        }
+
+        if (!isObjectLayer(collisionLayerData)) {
+            throw "Collision layer found, but it's not a valid object layer"
+        }
+
+        this.collisionLayer = new CollisionLayer(collisionLayerData, chunkSize,this.tile_unscaled_size ,this.baseLayer.width, this.baseLayer.height);
+
+        if (typeof this.collisionLayer == "undefined") {
+            throw "No collision layer found"
         }
     }
-
-    renderLayerById(layerId: number) {
-        for (const layer of this.layers) {
-            if (layer.id === layerId)
-                this.renderLayer(layer)
-                return
-        }
-        throw "No such layer Id"
-    }
-
-    private renderLayer(layer: Layer) {
-        const start_x = this.position.x;
-        const start_y = this.position.y;
-        for (let x = 0; x < layer.width; x++) {
-            for (let y = 0; y < layer.height; y++) {
-                this.tile("tile_" + layer.data[(layer.width*y) + x] + ".png", start_x +x*16, start_y + y*16);
-            }
-        }
-    }
-
 };
 
 class HitBox {
@@ -147,55 +134,113 @@ class HitBox {
     }
 }
 
+class CollisionChunk {
+    boxes: HitBox[] = [];
+}
+
 class CollisionLayer {
+    chunks: CollisionChunk[][] = []
+    chunkSize: number;
+    layerWidth: number;
+    layerHeight: number;
+    tileSize: number
 
-    boxes: HitBox[] = []
-    constructor(layer: ObjectLayer) {
-        for (var i = 0; i < layer.objects.length; i++) {
-            const obj = layer.objects[i];
-            this.boxes.push(new HitBox(obj.x, obj.y, obj.width, obj.height))
-        }
-    }
+    constructor(layer: ObjectLayer, chunkSize: number, tileSize: number, layerWidth: number, layerHeight: number) {
+        this.tileSize = tileSize;
+        this.chunkSize = chunkSize;
+        this.layerWidth = layerWidth;
+        this.layerHeight = layerHeight;
 
-    checkRightCollision(player: HitBox): boolean {
-        for (const b of this.boxes) {
-            if (player.x+player.width >= b.x && player.x <= b.x+b.width && player.y <= b.y+b.height && player.y+player.height >= b.y) {
-                return true
+        for (let x = 0; x < layerWidth; x++) {
+            this.chunks.push([]);
+            for (let y = 0; y < layerHeight; y++) {
+                this.chunks[x].push(new CollisionChunk())
             }
         }
-        return false
+
+        layer.objects.forEach(o => {
+            const row = Math.floor(o.y/(this.chunkSize*tileSize)); 
+            const col = Math.floor(o.x/(this.chunkSize*tileSize));
+            this.chunks[row][col].boxes.push(new HitBox(o.x, o.y, o.width, o.height));
+        });
     }
 
-    checkLeftCollison(player: HitBox): boolean {
-        for (const b of this.boxes) {
-            if (player.x > b.x && player.x <= b.x+b.width && player.y <= b.y+b.height && player.y+player.height >= b.y) {
-                return true
-            }
-        }
-        return false
+    checkBorderCollision(player: HitBox) {
+        return player.x <= 0 || player.y <= 0 || player.x >= this.layerWidth*this.tileSize || player.y >= this.layerHeight*this.tileSize
     }
 
-    checkUpCollision(player: HitBox): boolean {
-        for (const b of this.boxes) {
-            if (player.y > b.y && player.y <= b.y+b.height && player.x <= b.x+b.width && player.x+player.width >= b.x) {
-                return true
-            }
+    checkLeftCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
+        // Check that were not on a boundary
+        if (this.checkBorderCollision(player)) {
+            return true
         }
-        return false
+        const boxes = this.chunks[chunkY][chunkX].boxes;
+        return checkLeftCollision(player, boxes);
     }
 
-    checkDownCollision(player: HitBox): boolean {
-        for (const b of this.boxes) {
-            if (player.y+player.height >= b.y && player.y+player.height <= b.y+b.height && player.x <= b.x+b.width && player.x+player.width >= b.x) {
-                return true
-            }
+    checkRightCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
+        // Check that were not on a boundary
+        if (this.checkBorderCollision(player)) {
+            return true
         }
-        return false
+        const boxes = this.chunks[chunkY][chunkX].boxes;
+        return checkRightCollision(player, boxes);
+    }
 
+    checkUpCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
+        // Check that were not on a boundary
+        if (this.checkBorderCollision(player)) {
+            return true
+        }
+        const boxes = this.chunks[chunkY][chunkX].boxes;
+        return checkUpCollision(player, boxes);
+    }
+
+    checkDownCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
+        // Check that were not on a boundary
+        if (this.checkBorderCollision(player)) {
+            return true
+        }
+        const boxes = this.chunks[chunkY][chunkX].boxes;
+        return checkDownCollision(player, boxes);
     }
 }
 
+function checkLeftCollision(player: HitBox, boxes: HitBox[]): boolean {
+    for (const b of boxes) {
+        if (player.x > b.x && player.x <= b.x+b.width && player.y <= b.y+b.height && player.y+player.height >= b.y) {
+            return true
+        }
+    }
+    return false
+}
+
+function checkRightCollision(player: HitBox, boxes: HitBox[]): boolean {
+    for (const b of boxes) {
+        if (player.x+player.width >= b.x && player.x <= b.x+b.width && player.y <= b.y+b.height && player.y+player.height >= b.y) {
+            return true
+        }
+    }
+    return false
+}
+
+function checkUpCollision(player: HitBox, boxes: HitBox[]): boolean {
+    for (const b of boxes) {
+        if (player.y > b.y && player.y <= b.y+b.height && player.x <= b.x+b.width && player.x+player.width >= b.x) {
+            return true
+        }
+    }
+    return false
+}
+
+function checkDownCollision(player: HitBox, boxes: HitBox[]): boolean {
+    for (const b of boxes) {
+        if (player.y+player.height >= b.y && player.y+player.height <= b.y+b.height && player.x <= b.x+b.width && player.x+player.width >= b.x) {
+            return true
+        }
+    }
+    return false
+
+}
+
 export {Tilemap, CollisionLayer, HitBox}
-
-
-
