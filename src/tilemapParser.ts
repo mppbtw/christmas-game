@@ -24,6 +24,7 @@ interface TileObject {
     y: number;
 }
 
+/*
 function isLayer(obj: any): obj is Layer {
     return (
         Array.isArray(obj.data) &&
@@ -38,6 +39,7 @@ function isLayer(obj: any): obj is Layer {
         typeof obj.y === 'number'
     );
 }
+*/
 
 function isTileObject(obj: any): obj is TileObject {
     return (
@@ -85,15 +87,17 @@ function isLayersData(obj: any): obj is TilemapData {
 
 class Tilemap extends CompositeTilemap {
 
-    baseLayer: Layer;
+    baseLayer: VisualLayer;
     collisionLayer: CollisionLayer;
-    tile_unscaled_size: number
-    chunkSize: number;
+    tileUnscaledSize: number
+    collisionChunkSize: number;
+    visualChunkSize: number;
 
-    constructor(src: Object, tile_unscaled_size: number, chunkSize: number) {
+    constructor(src: Object, tileUnscaledSize: number, collisionChunkSize: number, visualChunkSize: number) {
         super();
-        this.chunkSize = chunkSize;
-        this.tile_unscaled_size = tile_unscaled_size;
+        this.collisionChunkSize = collisionChunkSize;
+        this.visualChunkSize = visualChunkSize;
+        this.tileUnscaledSize = tileUnscaledSize;
         if (!isLayersData(src))  {
             throw "Invalid tilemap JSON data."
         }
@@ -101,7 +105,6 @@ class Tilemap extends CompositeTilemap {
         if (!baseLayer) {
             throw "No baselayer found"
         }
-        this.baseLayer = baseLayer;
 
         const collisionLayerData = src.layers.find(l => l.name == "Collision");
         if (!collisionLayerData) {
@@ -112,13 +115,68 @@ class Tilemap extends CompositeTilemap {
             throw "Collision layer found, but it's not a valid object layer"
         }
 
-        this.collisionLayer = new CollisionLayer(collisionLayerData, chunkSize,this.tile_unscaled_size ,this.baseLayer.width, this.baseLayer.height);
+        this.collisionLayer = new CollisionLayer(collisionLayerData, collisionChunkSize, this.tileUnscaledSize, baseLayer.width, baseLayer.height);
 
         if (typeof this.collisionLayer == "undefined") {
             throw "No collision layer found"
         }
+
+        this.baseLayer = new VisualLayer(baseLayer, tileUnscaledSize, visualChunkSize);
+    }
+
+    renderVisualChunk(row: number, col: number) {
+        const chunk = this.baseLayer.chunks[row][col];
+        for (let x = 0; x < this.baseLayer.chunkSize; x++) {
+            for (let y = 0; y < this.baseLayer.chunkSize; y++) {
+                const tileIndex = y*this.baseLayer.chunkSize + x;
+                const start_x = chunk.x*16;
+                const start_y = chunk.x*16;
+                this.tile("tile_" + chunk.data[tileIndex] + ".png", start_x +x*16, start_y + y*16);
+            }
+        }
     }
 };
+
+class VisualChunk {
+    public x: number = 0;
+    public y: number = 0;
+    public data: number[] = [];
+}
+
+class VisualLayer {
+    chunks: VisualChunk[][] = [];
+    layerWidth: number;
+    layerHeight: number;
+    tileSize: number;
+    chunkSize: number;
+    
+    constructor(layer: Layer, tileSize: number, chunkSize: number) {
+        this.tileSize = tileSize;
+        this.layerWidth = layer.width;
+        this.layerHeight = layer.height;
+        this.chunkSize = chunkSize;
+        this.chunks  = []
+
+        for (let row = 0; row < Math.ceil(this.layerHeight/chunkSize); row++) {
+            this.chunks.push([]);
+            for (let col = 0; col < Math.ceil(this.layerWidth/chunkSize); col++) {
+                this.chunks[row].push(new VisualChunk())
+                this.chunks[row][col].x = col*chunkSize;
+                this.chunks[row][col].y = row*chunkSize;
+            }
+        }
+
+        for (let i = 0; i < layer.data.length; i++) {
+            const tile = layer.data[i];
+            const tileRow = Math.floor(i/this.layerWidth);
+            const row = Math.floor(tileRow/chunkSize);
+            const tileCol  = i - (tileRow*this.layerWidth);
+            const col = Math.floor(tileCol/chunkSize);
+            this.chunks[row][col].data.push(tile);
+
+        }
+    }
+}
 
 class HitBox {
     x: number;
@@ -140,27 +198,27 @@ class CollisionChunk {
 
 class CollisionLayer {
     chunks: CollisionChunk[][] = []
-    chunkSize: number;
+    collisionChunkSize: number;
     layerWidth: number;
     layerHeight: number;
     tileSize: number
 
-    constructor(layer: ObjectLayer, chunkSize: number, tileSize: number, layerWidth: number, layerHeight: number) {
+    constructor(layer: ObjectLayer, collisionChunkSize: number, tileSize: number, layerWidth: number, layerHeight: number) {
         this.tileSize = tileSize;
-        this.chunkSize = chunkSize;
+        this.collisionChunkSize = collisionChunkSize;
         this.layerWidth = layerWidth;
         this.layerHeight = layerHeight;
 
-        for (let x = 0; x < layerWidth; x++) {
+        for (let x = 0; x < Math.floor(layerWidth/collisionChunkSize); x++) {
             this.chunks.push([]);
-            for (let y = 0; y < layerHeight; y++) {
+            for (let y = 0; y < Math.floor(layerHeight/collisionChunkSize); y++) {
                 this.chunks[x].push(new CollisionChunk())
             }
         }
 
         layer.objects.forEach(o => {
-            const row = Math.floor(o.y/(this.chunkSize*tileSize)); 
-            const col = Math.floor(o.x/(this.chunkSize*tileSize));
+            const row = Math.floor(o.y/(this.collisionChunkSize*tileSize)); 
+            const col = Math.floor(o.x/(this.collisionChunkSize*tileSize));
             this.chunks[row][col].boxes.push(new HitBox(o.x, o.y, o.width, o.height));
         });
     }
