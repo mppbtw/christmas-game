@@ -3,6 +3,7 @@ import * as PIXI from "pixi.js"
 class Player extends PIXI.AnimatedSprite {
     health: number = 0
     name: string = ""
+    visualChunkLocation: number[] = [0, 0]
     speed: number = 1
     pixelWidth: number = 0;
     pixelHeight: number = 0;

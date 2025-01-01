@@ -126,12 +126,18 @@ class Tilemap extends CompositeTilemap {
 
     renderVisualChunk(row: number, col: number) {
         const chunk = this.baseLayer.chunks[row][col];
+        if (chunk.showing) {
+            return;
+        }
         for (let x = 0; x < this.baseLayer.chunkSize; x++) {
             for (let y = 0; y < this.baseLayer.chunkSize; y++) {
                 const tileIndex = y*this.baseLayer.chunkSize + x;
                 const start_x = chunk.x*16;
-                const start_y = chunk.x*16;
-                this.tile("tile_" + chunk.data[tileIndex] + ".png", start_x +x*16, start_y + y*16);
+                const start_y = chunk.y*16;
+                chunk.showing = true;
+                if (typeof(chunk.data[tileIndex]) != "undefined") {
+                    this.tile("tile_" + chunk.data[tileIndex] + ".png", start_x +x*16, start_y + y*16);
+                }
             }
         }
     }
@@ -141,10 +147,11 @@ class VisualChunk {
     public x: number = 0;
     public y: number = 0;
     public data: number[] = [];
+    public showing: boolean = false;
 }
 
 class VisualLayer {
-    chunks: VisualChunk[][] = [];
+    public chunks: VisualChunk[][] = [];
     layerWidth: number;
     layerHeight: number;
     tileSize: number;

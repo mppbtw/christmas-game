@@ -43,18 +43,18 @@ await PIXI.Assets.load(["tilemap"])
 
 const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 4, 16);
 tilemap.position.set(0, 0);
-tilemap.renderVisualChunk(0, 0);
 world.addChild(tilemap);
 
 const player = new Player(["green_1.png", "green_2.png", "green_3.png"]);
 player.x = 100;
 player.y = 100;
-player.speed = 1;
+player.speed = 1.5;
 const playerSize = 20
 const playerAspectRatio = player.pixelWidth/player.pixelHeight;
 player.width = playerAspectRatio*playerSize;
 player.height = playerSize;
 world.addChild(player);
+handleVisualChunks();
 
 const snowTexture = PIXI.Texture.from("snow.png");
 const snow = new Snow(snowTexture,10, window.innerWidth, window.innerHeight);
@@ -66,8 +66,26 @@ world.addChild(hbs);
 app.ticker.add(() => snow.updateSnow());
 app.ticker.add(() => kbd.pressedKeys.forEach(handleKey));
 app.ticker.add(() => {if (!kbd.isWasdPressed()) {player.gotoAndStop(0); player.isMoving = false}});
+app.ticker.add(() => {if (player.isMoving) {handleVisualChunks()}});
 app.ticker.add(renderHitboxes);
 app.ticker.add(moveCamera);
+
+function handleVisualChunks() {
+  const playerChunkRow = Math.floor((player.y/tile_unscaled_size)/tilemap.baseLayer.chunkSize)
+  const playerChunkCol = Math.floor((player.x/tile_unscaled_size)/tilemap.baseLayer.chunkSize)
+  if (player.visualChunkLocation[0] != playerChunkRow && player.visualChunkLocation[1] != playerChunkCol) {
+    return
+  }
+  player.visualChunkLocation = [playerChunkRow, playerChunkCol];
+
+  for (let i = -1; i <= 1; i++) {
+    for (let j = -1; j <= 1; j++) {
+      try {
+        tilemap.renderVisualChunk(i+playerChunkRow, j+playerChunkCol);
+      } catch (e) {}
+    }
+  }
+}
 
 function renderHitboxes() {
   if (hitboxes_enabled) {
