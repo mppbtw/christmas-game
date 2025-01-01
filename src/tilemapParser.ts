@@ -180,7 +180,6 @@ class VisualLayer {
             const tileCol  = i - (tileRow*this.layerWidth);
             const col = Math.floor(tileCol/chunkSize);
             this.chunks[row][col].data.push(tile);
-
         }
     }
 }
@@ -231,7 +230,7 @@ class CollisionLayer {
     }
 
     checkBorderCollision(player: HitBox) {
-        return player.x <= 0 || player.y <= 0 || player.x >= this.layerWidth*this.tileSize || player.y >= this.layerHeight*this.tileSize
+        return player.x < 0 || player.y < 0 || player.x+player.width > this.layerWidth*this.tileSize || player.y+player.height > this.layerHeight*this.tileSize
     }
 
     checkLeftCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
@@ -239,8 +238,12 @@ class CollisionLayer {
         if (this.checkBorderCollision(player)) {
             return true
         }
-        const boxes = this.chunks[chunkY][chunkX].boxes;
-        return checkLeftCollision(player, boxes);
+        try {
+            const boxes = this.chunks[chunkY][chunkX].boxes;
+            return checkLeftCollision(player, boxes);
+        } catch (e) {
+            return false
+        }
     }
 
     checkRightCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
@@ -248,8 +251,12 @@ class CollisionLayer {
         if (this.checkBorderCollision(player)) {
             return true
         }
-        const boxes = this.chunks[chunkY][chunkX].boxes;
-        return checkRightCollision(player, boxes);
+        try {
+            const boxes = this.chunks[chunkY][chunkX].boxes;
+            return checkRightCollision(player, boxes);
+        } catch (e) {
+            return false
+        }
     }
 
     checkUpCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
@@ -257,8 +264,12 @@ class CollisionLayer {
         if (this.checkBorderCollision(player)) {
             return true
         }
-        const boxes = this.chunks[chunkY][chunkX].boxes;
-        return checkUpCollision(player, boxes);
+        try {
+            const boxes = this.chunks[chunkY][chunkX].boxes;
+            return checkUpCollision(player, boxes);
+        } catch (e) {
+            return false
+        }
     }
 
     checkDownCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
@@ -266,8 +277,10 @@ class CollisionLayer {
         if (this.checkBorderCollision(player)) {
             return true
         }
+        try {
         const boxes = this.chunks[chunkY][chunkX].boxes;
         return checkDownCollision(player, boxes);
+        } catch (e) {return false}
     }
 }
 
