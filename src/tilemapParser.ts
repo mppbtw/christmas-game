@@ -41,6 +41,12 @@ function isLayer(obj: any): obj is Layer {
 }
 */
 
+function chunkOf(x: number, y: number, chunkSize: number, tileSize: number): number[] {
+    const col = Math.floor(Math.floor(x/tileSize)/chunkSize);
+    const row = Math.floor(Math.floor((y)/tileSize)/chunkSize);
+    return [row, col];
+} 
+
 function isTileObject(obj: any): obj is TileObject {
     return (
         typeof obj === "object" &&
@@ -233,17 +239,62 @@ class CollisionLayer {
         return player.x < 0 || player.y < 0 || player.x+player.width > this.layerWidth*this.tileSize || player.y+player.height > this.layerHeight*this.tileSize
     }
 
-    checkLeftCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
+    getPotentialBoxes(hb: HitBox): HitBox[] {
+
+        const checkChunk = function(chunk: number[], checkedChunks: number[][]): boolean {
+            for (let i = 0; i < checkedChunks.length; i++) {
+                const c = checkedChunks[i];
+                if (c[0] === chunk[0] && c[1] === chunk[0]) {
+                    return false
+                }
+            }
+            return true
+        }
+        const topLeft = chunkOf(hb.x, hb.y, this.collisionChunkSize, this.tileSize);
+        const topRight = chunkOf(hb.x+hb.width, hb.y, this.collisionChunkSize, this.tileSize);
+        const bottomLeft = chunkOf(hb.x, hb.y+hb.height, this.collisionChunkSize, this.tileSize);
+        const bottomRight = chunkOf(hb.x+hb.width, hb.y+hb.height, this.collisionChunkSize, this.tileSize);
+
+        let checkedChunks = [];
+        let boxes: HitBox[] = [];
+        checkedChunks.push(topLeft)
+
+        {
+            if (checkChunk(topRight, checkedChunks)) {
+                boxes = boxes.concat(this.chunks[topRight[0]][topRight[1]].boxes);
+            }
+        }
+        {
+            if (checkChunk(topLeft, checkedChunks)) {
+                boxes = boxes.concat(this.chunks[topLeft[0]][topLeft[1]].boxes);
+            }
+        }
+        {
+            if (checkChunk(bottomLeft, checkedChunks)) {
+                boxes = boxes.concat(this.chunks[bottomLeft[0]][bottomLeft[1]].boxes);
+            }
+        }
+        {
+            if (checkChunk(bottomRight, checkedChunks)) {
+                boxes = boxes.concat(this.chunks[bottomRight[0]][bottomRight[1]].boxes);
+            }
+        }
+        let total = 0;
+        this.chunks.forEach(c => c.forEach(b => total += b.boxes.length))
+        console.log(total)
+        return boxes
+    }
+
+    //constructor(x: number, y: number, width: number, height: number) {
+    checkLeftCollision(player: HitBox, speed: number): boolean {
         // Check that were not on a boundary
         if (this.checkBorderCollision(player)) {
             return true
         }
-        try {
-            const boxes = this.chunks[chunkY][chunkX].boxes;
-            return checkLeftCollision(player, boxes);
-        } catch (e) {
-            return false
-        }
+
+        const newHB = new HitBox(player.x-speed, player.y, player.width, player.height);
+        const boxes = this.getPotentialBoxes(newHB)
+        return checkLeftCollision(player, boxes);
     }
 
     checkRightCollision(player: HitBox, chunkX: number, chunkY: number): boolean {

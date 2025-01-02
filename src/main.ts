@@ -46,7 +46,7 @@ PIXI.Assets.add({alias: "tilemap", src: "assets/tilemap.json"});
 await PIXI.Assets.load(["atlas"])
 await PIXI.Assets.load(["tilemap"])
 
-const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 4, 16);
+const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 12, 16);
 tilemap.position.set(0, 0);
 world.addChild(tilemap);
 
@@ -123,11 +123,9 @@ function moveCamera() {
 }
 
 function handleKey(key: string) {
+  const playerHB = new HitBox(player.x, player.y, player.width, player.height)
   if (key == "w") {
-    const playerChunkX = Math.floor(Math.floor(player.x/tile_unscaled_size)/tilemap.collisionChunkSize);
-    const playerChunkY = Math.floor(Math.floor((player.y-player.speed)/tile_unscaled_size)/tilemap.collisionChunkSize);
-    const newHB = new HitBox(player.x, player.y-player.speed, player.width, player.height);
-    if (!tilemap.collisionLayer.checkUpCollision(newHB, playerChunkX, playerChunkY) && !tilemap.collisionLayer.checkUpCollision(newHB, playerChunkX+1, playerChunkY)) {
+    if (!tilemap.collisionLayer.checkUpCollision(newHB, playerChunkX, playerChunkY)) {
       player.y -= player.speed;
       if (!player.isMoving) {
         player.isMoving = true;
@@ -135,10 +133,7 @@ function handleKey(key: string) {
     }
   }
   if (key == "s") {
-    const playerChunkX = Math.floor(Math.floor(player.x/tile_unscaled_size)/tilemap.collisionChunkSize);
-    const playerChunkY = Math.floor(Math.floor((player.y+player.speed)/tile_unscaled_size)/tilemap.collisionChunkSize);
-    const newHB = new HitBox(player.x, player.y+player.speed, player.width, player.height);
-    if (!tilemap.collisionLayer.checkDownCollision(newHB, playerChunkX, playerChunkY) && !tilemap.collisionLayer.checkDownCollision(newHB, playerChunkX+1, playerChunkY)) {
+    if (!tilemap.collisionLayer.checkDownCollision(player.x, player.y, player.speed)) {
       player.y += player.speed;
       if (!player.isMoving) {
         player.isMoving = true;
@@ -146,10 +141,7 @@ function handleKey(key: string) {
     }
   }
   if (key == "d") {
-    const playerChunkX = Math.floor(Math.floor((player.x+player.speed+player.width)/tile_unscaled_size)/tilemap.collisionChunkSize);
-    const playerChunkY = Math.floor(Math.floor(player.y/tile_unscaled_size)/tilemap.collisionChunkSize);
-    const newHB = new HitBox(player.x+player.speed, player.y, player.width, player.height);
-    if (!tilemap.collisionLayer.checkRightCollision(newHB, playerChunkX, playerChunkY) && !tilemap.collisionLayer.checkRightCollision(newHB, playerChunkX, playerChunkY+1)) {
+    if (!tilemap.collisionLayer.checkRightCollision(player.x, player.y, player.speed)) {
       player.x += player.speed;
       if (!player.isMoving) {
         player.isMoving = true;
@@ -157,10 +149,7 @@ function handleKey(key: string) {
     }
   }
   if (key == "a") {
-    const playerChunkX = Math.floor(Math.floor((player.x-player.speed)/tile_unscaled_size)/tilemap.collisionChunkSize);
-    const playerChunkY = Math.floor(Math.floor(player.y/tile_unscaled_size)/tilemap.collisionChunkSize);
-    const newHB = new HitBox(player.x-player.speed, player.y, player.width, player.height);
-    if (!tilemap.collisionLayer.checkLeftCollision(newHB, playerChunkX, playerChunkY) && !tilemap.collisionLayer.checkLeftCollision(newHB, playerChunkX, playerChunkY+1)) {
+    if (!tilemap.collisionLayer.checkLeftCollision(playerHB, player.speed)) {
       player.x -= player.speed;
       if (!player.isMoving) {
         player.isMoving = true;
