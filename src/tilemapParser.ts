@@ -260,78 +260,62 @@ class CollisionLayer {
         checkedChunks.push(topLeft)
 
         {
-            if (checkChunk(topRight, checkedChunks)) {
-                boxes = boxes.concat(this.chunks[topRight[0]][topRight[1]].boxes);
-            }
+            boxes = boxes.concat(this.chunks[topRight[0]][topRight[1]].boxes);
         }
         {
-            if (checkChunk(topLeft, checkedChunks)) {
-                boxes = boxes.concat(this.chunks[topLeft[0]][topLeft[1]].boxes);
-            }
+            boxes = boxes.concat(this.chunks[topLeft[0]][topLeft[1]].boxes);
         }
         {
-            if (checkChunk(bottomLeft, checkedChunks)) {
-                boxes = boxes.concat(this.chunks[bottomLeft[0]][bottomLeft[1]].boxes);
-            }
+            boxes = boxes.concat(this.chunks[bottomLeft[0]][bottomLeft[1]].boxes);
         }
         {
-            if (checkChunk(bottomRight, checkedChunks)) {
-                boxes = boxes.concat(this.chunks[bottomRight[0]][bottomRight[1]].boxes);
-            }
+            boxes = boxes.concat(this.chunks[bottomRight[0]][bottomRight[1]].boxes);
         }
         let total = 0;
         this.chunks.forEach(c => c.forEach(b => total += b.boxes.length))
-        console.log(total)
         return boxes
     }
 
     //constructor(x: number, y: number, width: number, height: number) {
     checkLeftCollision(player: HitBox, speed: number): boolean {
-        // Check that were not on a boundary
-        if (this.checkBorderCollision(player)) {
-            return true
-        }
-
         const newHB = new HitBox(player.x-speed, player.y, player.width, player.height);
+        // Check that were not on a boundary
+        if (this.checkBorderCollision(newHB)) {
+            return true
+        }
+
         const boxes = this.getPotentialBoxes(newHB)
-        return checkLeftCollision(player, boxes);
+        return checkLeftCollision(newHB, boxes);
     }
 
-    checkRightCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
+    checkRightCollision(player: HitBox, speed: number): boolean {
+        const newHB = new HitBox(player.x+speed, player.y, player.width, player.height);
         // Check that were not on a boundary
-        if (this.checkBorderCollision(player)) {
+        if (this.checkBorderCollision(newHB)) {
             return true
         }
-        try {
-            const boxes = this.chunks[chunkY][chunkX].boxes;
-            return checkRightCollision(player, boxes);
-        } catch (e) {
-            return false
-        }
+        const boxes = this.getPotentialBoxes(newHB)
+        return checkRightCollision(newHB, boxes);
     }
 
-    checkUpCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
+    checkUpCollision(player: HitBox, speed: number): boolean {
         // Check that were not on a boundary
-        if (this.checkBorderCollision(player)) {
+        const newHB = new HitBox(player.x, player.y-speed, player.width, player.height);
+        if (this.checkBorderCollision(newHB)) {
             return true
         }
-        try {
-            const boxes = this.chunks[chunkY][chunkX].boxes;
-            return checkUpCollision(player, boxes);
-        } catch (e) {
-            return false
-        }
+        const boxes = this.getPotentialBoxes(newHB)
+        return checkUpCollision(newHB, boxes);
     }
 
-    checkDownCollision(player: HitBox, chunkX: number, chunkY: number): boolean {
+    checkDownCollision(player: HitBox, speed: number): boolean {
         // Check that were not on a boundary
-        if (this.checkBorderCollision(player)) {
+        const newHB = new HitBox(player.x, player.y+speed, player.width, player.height);
+        if (this.checkBorderCollision(newHB)) {
             return true
         }
-        try {
-        const boxes = this.chunks[chunkY][chunkX].boxes;
-        return checkDownCollision(player, boxes);
-        } catch (e) {return false}
+        const boxes = this.getPotentialBoxes(newHB)
+        return checkDownCollision(newHB, boxes);
     }
 }
 

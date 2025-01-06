@@ -17,6 +17,7 @@
     "@pixi/tilemap": "^5.0.1",
     "pixi-stats": "^3.1.1",
     "pixi.js": "^8.6.3",
+    "pixijs-grid": "^0.4.1",
     "sharp": "^0.33.5"
   }
 }

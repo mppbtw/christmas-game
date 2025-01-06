@@ -46,7 +46,7 @@ PIXI.Assets.add({alias: "tilemap", src: "assets/tilemap.json"});
 await PIXI.Assets.load(["atlas"])
 await PIXI.Assets.load(["tilemap"])
 
-const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 12, 16);
+const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 4, 16);
 tilemap.position.set(0, 0);
 world.addChild(tilemap);
 
@@ -125,7 +125,7 @@ function moveCamera() {
 function handleKey(key: string) {
   const playerHB = new HitBox(player.x, player.y, player.width, player.height)
   if (key == "w") {
-    if (!tilemap.collisionLayer.checkUpCollision(newHB, playerChunkX, playerChunkY)) {
+    if (!tilemap.collisionLayer.checkUpCollision(playerHB, player.speed)) {
       player.y -= player.speed;
       if (!player.isMoving) {
         player.isMoving = true;
@@ -133,7 +133,7 @@ function handleKey(key: string) {
     }
   }
   if (key == "s") {
-    if (!tilemap.collisionLayer.checkDownCollision(player.x, player.y, player.speed)) {
+    if (!tilemap.collisionLayer.checkDownCollision(playerHB, player.speed)) {
       player.y += player.speed;
       if (!player.isMoving) {
         player.isMoving = true;
@@ -141,7 +141,7 @@ function handleKey(key: string) {
     }
   }
   if (key == "d") {
-    if (!tilemap.collisionLayer.checkRightCollision(player.x, player.y, player.speed)) {
+    if (!tilemap.collisionLayer.checkRightCollision(playerHB, player.speed)) {
       player.x += player.speed;
       if (!player.isMoving) {
         player.isMoving = true;
