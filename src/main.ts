@@ -4,10 +4,11 @@ import * as PIXI from "pixi.js"
 import { Tilemap, HitBox} from "./tilemapParser.ts"
 import { Player } from "./player.ts"
 import { Keyboard } from "./keyboardHandler.ts"
+import { StatsHandler } from "./statsHandler.ts"
 import { Stats } from "pixi-stats"
 
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = "<div></div>";
+document.querySelector<HTMLDivElement>('#app')!.outerHTML = "<div id='statspanel'></div>";
 
 PIXI.TextureStyle.defaultOptions.scaleMode = "nearest";
 
@@ -23,8 +24,8 @@ kbd.addClickHandler("h", () => {hitboxes_enabled = !hitboxes_enabled});
 const app = new PIXI.Application();
 await app.init({width: tile_unscaled_size*map_size, height: tile_unscaled_size*map_size, antialias: false, roundPixels: true, backgroundColor: "blue"});
 
-const stats = new Stats(app.renderer);
-stats.showPanel(1);
+const stats = new StatsHandler(app.renderer);
+kbd.addClickHandler("p", () => {stats.toggle()});
 
 const world = new PIXI.Container();
 world.width = tile_unscaled_size*map_size;
@@ -46,7 +47,7 @@ PIXI.Assets.add({alias: "tilemap", src: "assets/tilemap.json"});
 await PIXI.Assets.load(["atlas"])
 await PIXI.Assets.load(["tilemap"])
 
-const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 4, 16);
+const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 4, 25);
 tilemap.position.set(0, 0);
 world.addChild(tilemap);
 
