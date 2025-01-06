@@ -50,7 +50,7 @@ const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 4, 1
 tilemap.position.set(0, 0);
 world.addChild(tilemap);
 
-const player = new Player(["green_1.png", "green_2.png", "green_3.png"]);
+const player = new Player(["green_1.png", "green_2.png", "green_3.png"], 12, 16);
 player.x = 100;
 player.y = 100;
 player.speed = 1;
@@ -95,7 +95,7 @@ function handleVisualChunks() {
 function renderHitboxes() {
   if (hitboxes_enabled) {
     hbs.clear();
-    hbs.rect(player.x, player.y, player.width, player.height);
+    hbs.rect(player.x+player.hb.x, player.y+player.hb.y, player.hb.width, player.hb.height);
 
     for (let i = 0; i < Math.floor(tilemap.baseLayer.layerWidth/tilemap.collisionChunkSize); i++) {
       for (let j = 0; j < Math.floor(tilemap.baseLayer.layerHeight/tilemap.collisionChunkSize); j++) {
@@ -123,7 +123,7 @@ function moveCamera() {
 }
 
 function handleKey(key: string) {
-  const playerHB = new HitBox(player.x, player.y, player.width, player.height)
+  const playerHB = new HitBox(player.x+player.hb.x, player.y+player.hb.y, player.hb.width, player.hb.height)
   if (key == "w") {
     if (!tilemap.collisionLayer.checkUpCollision(playerHB, player.speed)) {
       player.y -= player.speed;

@@ -1,4 +1,5 @@
 import * as PIXI from "pixi.js"
+import { HitBox } from "./tilemapParser"
 
 class Player extends PIXI.AnimatedSprite {
     health: number = 0
@@ -8,8 +9,11 @@ class Player extends PIXI.AnimatedSprite {
     pixelWidth: number = 0;
     pixelHeight: number = 0;
     isMoving: boolean = false;
+    hitboxSize: number = 12;
 
-    constructor(sprites: string[]) {
+    hb: HitBox;
+
+    constructor(sprites: string[], width: number, height: number) {
         let textures: PIXI.Texture[] = []
         sprites.forEach((s) => {
             textures.push(PIXI.textureFrom(s));
@@ -25,6 +29,7 @@ class Player extends PIXI.AnimatedSprite {
                 this.currentFrame = 1;
             }
         })
+        this.hb = new HitBox(width/3, height/8, width, height)
     }
 }
 
