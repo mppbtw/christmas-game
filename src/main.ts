@@ -5,14 +5,13 @@ import { Tilemap, HitBox} from "./tilemapParser.ts"
 import { Player } from "./player.ts"
 import { Keyboard } from "./keyboardHandler.ts"
 import { StatsHandler } from "./statsHandler.ts"
-import { Stats } from "pixi-stats"
 
 
 document.querySelector<HTMLDivElement>('#app')!.outerHTML = "<div id='statspanel'></div>";
 
 PIXI.TextureStyle.defaultOptions.scaleMode = "nearest";
 
-const scale_factor = 3;
+const scale_factor = 4;
 const tile_unscaled_size = 16;
 const map_size = 420;
 
@@ -23,6 +22,10 @@ kbd.addClickHandler("h", () => {hitboxes_enabled = !hitboxes_enabled});
 
 const app = new PIXI.Application();
 await app.init({width: tile_unscaled_size*map_size, height: tile_unscaled_size*map_size, antialias: false, roundPixels: true, backgroundColor: "blue"});
+
+const defaultIcon = "url('assets/cursor.png'),auto"
+
+app.renderer.events.cursorStyles.default = defaultIcon
 
 const stats = new StatsHandler(app.renderer);
 kbd.addClickHandler("p", () => {stats.toggle()});
@@ -69,7 +72,7 @@ app.stage.addChild(snow);
 const hbs = new PIXI.Graphics();
 world.addChild(hbs);
 
-//app.ticker.add(() => snow.updateSnow());
+app.ticker.add(() => snow.updateSnow());
 app.ticker.add(() => kbd.pressedKeys.forEach(handleKey));
 app.ticker.add(() => {if (!kbd.isWasdPressed()) {player.gotoAndStop(0); player.isMoving = false}});
 app.ticker.add(() => {if (player.isMoving) {handleVisualChunks()}});
