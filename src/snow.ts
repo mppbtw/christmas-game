@@ -54,6 +54,7 @@ class Snow extends PIXI.Container {
             width: width,
             height: height,
         });
+
         this.addChild(this.particleContainer);
         this.snowflakeRate = snowflakeRate;
         this.snowTexture = texture;
@@ -108,7 +109,7 @@ class Snow extends PIXI.Container {
             p.y = this.particleMotionDats[i].getNextYMovement(p.y);
 
 
-            if (p.y > this.pixelHeight) {
+            if (p.y > window.innerHeight+50) {
                 this.particleContainer.particleChildren.splice(i, 1);
                 this.particleMotionDats.splice(i, 1);
             }
