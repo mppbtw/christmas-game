@@ -78,10 +78,7 @@ class Inventory extends PIXI.Container {
         this.grid = new InventoryGrid();
         this.addChild(this.grid);
         this.items = items;
-    }
-
-    show() {
-        this.grid.show();
+        this.grid.renderAll();
     }
 
     setSlot(row: number, col: number, item: ItemType, count: number) {
@@ -94,6 +91,7 @@ class Inventory extends PIXI.Container {
             text: slot.count.toString(),
             style: this.grid.textStyle,
         })
+        this.grid.renderSlot(row, col);
     }
 }
 
@@ -140,7 +138,7 @@ class InventoryGrid extends PIXI.Container {
         this.addChild(this.grid);
     }
 
-    show() {
+    renderAll() {
         const width = (this.gridMargin*2) + (this.cols-1)*(this.slotWidth+this.slotGap)+this.slotWidth;
         const height = (this.gridMargin*2) + (this.rows-1)*(this.slotWidth+this.slotGap) + this.slotWidth;
 

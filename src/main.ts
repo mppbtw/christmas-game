@@ -68,7 +68,9 @@ world.addChild(player);
 handleVisualChunks();
 
 app.stage.addChild(player.inventory)
-player.inventory.show();
+kbd.addClickHandler("e", () => {
+  player.inventory.visible = !player.inventory.visible;
+})
 
 const healthBar = new PIXI.Graphics();
 healthBar.alpha = 1;
