@@ -75,10 +75,14 @@ class Inventory extends PIXI.Container {
 
     constructor(items: ItemType[]) {
         super();
-        this.grid = new InventoryGrid();
+        this.grid = new InventoryGrid(this.handleClick);
         this.addChild(this.grid);
         this.items = items;
         this.grid.renderAll();
+    }
+
+    handleClick(row: number, col: number) {
+        console.log("handling a click at r/c", row, col);
     }
 
     setSlot(row: number, col: number, item: ItemType, count: number) {
@@ -95,7 +99,6 @@ class Inventory extends PIXI.Container {
     }
 }
 
-
 class InventoryGrid extends PIXI.Container {
     slots: InventorySlot[][];
     textStyle: PIXI.TextStyle;
@@ -108,8 +111,10 @@ class InventoryGrid extends PIXI.Container {
     borderThickness: number;
     slotGap: number;
     slotBorderThickness: number;
+    slotLayer: PIXI.Container;
+    clickHandler: Function
 
-    constructor() {
+    constructor(clickHandler: Function) {
         super();
         this.slotWidth = 70;
         this.slots = [];
@@ -120,6 +125,7 @@ class InventoryGrid extends PIXI.Container {
         this.slotBorderThickness = 4
         this.windowMargin = 100;
         this.gridMargin = 10;
+        this.clickHandler = clickHandler;
 
         this.textStyle = new PIXI.TextStyle({
             fontSize: "20px",
@@ -136,6 +142,8 @@ class InventoryGrid extends PIXI.Container {
 
         this.grid = new PIXI.Graphics();
         this.addChild(this.grid);
+        this.slotLayer = new PIXI.Container();
+        this.addChild(this.slotLayer);
     }
 
     renderAll() {
@@ -164,16 +172,50 @@ class InventoryGrid extends PIXI.Container {
 
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.cols; col++) {
-                this.grid.roundRect(
-                    this.windowMargin+this.gridMargin+col*(this.slotWidth+this.slotGap),
-                    this.windowMargin+this.gridMargin+row*(this.slotWidth+this.slotGap),
-                    this.slotWidth,
-                    this.slotWidth,
+                const graphic = new PIXI.Graphics();
+                const x = this.windowMargin+this.gridMargin+col*(this.slotWidth+this.slotGap);
+                const y = this.windowMargin+this.gridMargin+row*(this.slotWidth+this.slotGap);
+                const width = this.slotWidth;
+                graphic.roundRect(
+                    x,
+                    y,
+                    width,
+                    width,
                     10,
                 )
+                graphic.fill(0x494949)
+                graphic.visible = true;
+                graphic.interactive = true;
+                graphic.onmouseover = function() {
+                    this.alpha = 0.5;
+                    this.roundRect(
+                        x,
+                        y,
+                        width,
+                        width,
+                        10
+                    )
+                    this.fill(0xffffff);
+                }
+                
+                graphic.onmouseleave = function() {
+
+                    this.clear();
+                    graphic.roundRect(
+                        x,
+                        y,
+                        width,
+                        width,
+                        10,
+                    )
+                    this.alpha = 1;
+                    this.fill(0x494949)
+                }
+
+                graphic.onmousedown = () => {this.clickHandler(row, col)};
+                this.slotLayer.addChild(graphic);
             }
         }
-        this.grid.fill(0x454545);
 
         // Now to render in all of the icons for the stuff in the slots
         for (let row = 0; row < this.rows; row++) {
