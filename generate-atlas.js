@@ -67,3 +67,8 @@ fs.writeFileSync(spritesOutputDir + "atlas.json", JSON.stringify(json).replaceAl
 let tm = JSON.parse(fs.readFileSync(devAssetsPath + "tilemap.json"));
 tm = tm.layers;
 fs.writeFileSync(spritesOutputDir + "tilemap.json", "{\"layers\":" + JSON.stringify(tm)+"}\n");
+
+//
+// Copy over the items.json data
+//
+fs.copyFileSync(devAssetsPath + "items.json", spritesOutputDir + "items.json")

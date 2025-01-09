@@ -15,6 +15,7 @@
   "dependencies": {
     "@pencil.js/spritesheet": "^1.5.1",
     "@pixi/tilemap": "^5.0.1",
+    "@pixi/ui": "^2.2.0",
     "pixi-stats": "^3.1.1",
     "pixi.js": "^8.6.3",
     "pixijs-grid": "^0.4.1",

@@ -15,7 +15,6 @@ const scale_factor = 4;
 const tile_unscaled_size = 16;
 const map_size = 420;
 
-
 const kbd = new Keyboard();
 let hitboxes_enabled = false;
 kbd.addClickHandler("h", () => {hitboxes_enabled = !hitboxes_enabled});
@@ -47,14 +46,17 @@ window.addEventListener("resize", function() {
 
 PIXI.Assets.add({alias: "atlas", src: "assets/atlas.json"});
 PIXI.Assets.add({alias: "tilemap", src: "assets/tilemap.json"});
+PIXI.Assets.add({alias: "items", src: "assets/items.json"});
 await PIXI.Assets.load(["atlas"])
+await PIXI.Assets.load(["items"])
 await PIXI.Assets.load(["tilemap"])
+
 
 const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 4, 25);
 tilemap.position.set(0, 0);
 world.addChild(tilemap);
 
-const player = new Player(["green_1.png", "green_2.png", "green_3.png"], 12, 16);
+const player = new Player(["green_1.png", "green_2.png", "green_3.png"], 12, 16, PIXI.Assets.get("items"));
 player.x = 100;
 player.y = 100;
 player.speed = 1;
@@ -65,11 +67,19 @@ player.height = playerSize;
 world.addChild(player);
 handleVisualChunks();
 
+app.stage.addChild(player.inventory)
+player.inventory.show();
+
+const healthBar = new PIXI.Graphics();
+healthBar.alpha = 1;
+app.stage.addChild(healthBar);
+
 const snowTexture = PIXI.Texture.from("snow.png");
 const snow = new Snow(snowTexture,10, window.innerWidth, window.innerHeight);
 app.stage.addChild(snow);
 
 const hbs = new PIXI.Graphics();
+hbs.alpha = 0.5;
 world.addChild(hbs);
 
 app.ticker.add(() => snow.updateSnow());
@@ -78,6 +88,7 @@ app.ticker.add(() => {if (!kbd.isWasdPressed()) {player.gotoAndStop(0); player.i
 app.ticker.add(() => {if (player.isMoving) {handleVisualChunks()}});
 app.ticker.add(renderHitboxes);
 app.ticker.add(moveCamera);
+app.ticker.add(renderHealthBar);
 
 function handleVisualChunks() {
   const playerChunkRow = Math.floor((player.y/tile_unscaled_size)/tilemap.baseLayer.chunkSize)
@@ -96,6 +107,15 @@ function handleVisualChunks() {
   }
 }
 
+function renderHealthBar() {
+  if (player.health != 100) {
+    healthBar.clear();
+    const width = 80
+    healthBar.rect(window.innerWidth/2-(width/2), (window.innerHeight/2)+player.height*2, width, 10).fill(0xd12121);
+    healthBar.rect(window.innerWidth/2-(width/2), (window.innerHeight/2)+player.height*2, width*(player.health/100), 10).fill(0x5cd121);
+  }
+}
+
 function renderHitboxes() {
   if (hitboxes_enabled) {
     hbs.clear();
@@ -111,7 +131,6 @@ function renderHitboxes() {
       }
     }
 
-    hbs.alpha = 0.5;
     hbs.fill(0);
 
 

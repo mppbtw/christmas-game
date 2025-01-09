@@ -1,0 +1,13 @@
+{
+    "items":[
+        {
+            "name": "wood",
+            "fancyname": "Wood",
+            "stack": 50,
+            "sprite": "wood.png",
+            "placeable": false,
+            "crafteable": false,
+            "recipe": ""
+        }
+    ]
+}
