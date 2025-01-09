@@ -54,14 +54,9 @@ class Player extends PIXI.AnimatedSprite {
         })
 
         this.inventory = new Inventory(items);
-        this.inventory.grid.slots[0][0].item = this.inventory.items[0];
-        this.inventory.grid.slots[0][0].count = 10;
-        const spriteFile = this.inventory.grid.slots[0][0].item!.sprite;
-        this.inventory.grid.slots[0][0].sprite = new PIXI.Sprite(PIXI.textureFrom(spriteFile));
-        this.inventory.grid.slots[0][0].text = new PIXI.Text({
-            text: this.inventory.grid.slots[0][0].count.toString(),
-            style: this.inventory.grid.textStyle,
-        })
+
+        this.inventory.setSlot(0, 0, items[0], 100);
+
         const sprite = PIXI.textureFrom(sprites[0]);
         this.pixelWidth = sprite.width;
         this.pixelHeight = sprite.height;
@@ -87,6 +82,18 @@ class Inventory extends PIXI.Container {
 
     show() {
         this.grid.show();
+    }
+
+    setSlot(row: number, col: number, item: ItemType, count: number) {
+        const slot = this.grid.slots[row][col];
+        slot.item = item;
+        const spriteFile = slot.item!.sprite;
+        slot.sprite = new PIXI.Sprite(PIXI.textureFrom(spriteFile));
+        slot.count = count;
+        slot.text = new PIXI.Text({
+            text: slot.count.toString(),
+            style: this.grid.textStyle,
+        })
     }
 }
 
@@ -173,18 +180,24 @@ class InventoryGrid extends PIXI.Container {
         // Now to render in all of the icons for the stuff in the slots
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.cols; col++) {
-                if (this.slots[row][col].item != null) {
-                    // First render the icon
-                    const slot = this.slots[row][col];
-                    slot.sprite!.y = this.windowMargin+this.gridMargin+col*(this.slotWidth+this.slotGap);
-                    slot.sprite!.x = this.windowMargin+this.gridMargin+row*(this.slotWidth+this.slotGap);
-                    this.addChild(slot.sprite!)
-                    // Then show the text
-                    this.addChild(slot.text!);
-                    slot.text!.y = this.windowMargin+this.gridMargin+col*(this.slotWidth+this.slotGap)+(this.slotWidth-slot.text!.width);
-                    slot.text!.x = this.windowMargin+this.gridMargin+row*(this.slotWidth+this.slotGap)+(this.slotWidth-slot.text!.width);
-                }
+                this.renderSlot(row, col);
             }
+        }
+    }
+
+    renderSlot(row: number, col: number) {
+        if (this.slots[row][col].item != null) {
+
+            // First render the icon
+            const slot = this.slots[row][col];
+            slot.sprite!.y = this.windowMargin+this.gridMargin+col*(this.slotWidth+this.slotGap);
+            slot.sprite!.x = this.windowMargin+this.gridMargin+row*(this.slotWidth+this.slotGap);
+            this.addChild(slot.sprite!)
+
+            // Then show the text
+            this.addChild(slot.text!);
+            slot.text!.y = this.windowMargin+this.gridMargin+col*(this.slotWidth+this.slotGap)+(this.slotWidth-slot.text!.height);
+            slot.text!.x = this.windowMargin+this.gridMargin+row*(this.slotWidth+this.slotGap)+(this.slotWidth-slot.text!.width);
         }
     }
 }
