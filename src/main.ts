@@ -67,7 +67,8 @@ player.height = playerSize;
 world.addChild(player);
 handleVisualChunks();
 
-app.stage.addChild(player.inventory)
+app.stage.addChild(player.inventory);
+app.stage.addChild(player.handContainer);
 kbd.addClickHandler("e", () => {
   player.inventory.visible = !player.inventory.visible;
 })

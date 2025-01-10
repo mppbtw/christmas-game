@@ -24,16 +24,18 @@ function isItemType(obj: any): obj is ItemType {
 }
 
 class Player extends PIXI.AnimatedSprite {
-    health: number = 100
-    name: string = ""
-    visualChunkLocation: number[] = [0, 0]
-    speed: number = 1
+    health: number = 100;
+    name: string = "";
+    visualChunkLocation: number[] = [0, 0];
+    speed: number = 1;
     pixelWidth: number = 0;
     pixelHeight: number = 0;
     isMoving: boolean = false;
     hitboxSize: number = 12;
     hb: HitBox;
-    inventory: Inventory
+    inventory: Inventory;
+    hand: InventorySlot;
+    handContainer: PIXI.Container;
 
     constructor(sprites: string[], width: number, height: number, itemsData: Object) {
         let textures: PIXI.Texture[] = []
@@ -53,9 +55,11 @@ class Player extends PIXI.AnimatedSprite {
             }
         })
 
-        this.inventory = new Inventory(items);
-
+        this.hand = new InventorySlot();
+        this.handContainer = new PIXI.Container();
+        this.inventory = new Inventory(items, this.hand);
         this.inventory.setSlot(0, 0, items[0], 100);
+        this.inventory.onHandPickup = () => this.renderHand(this);
 
         const sprite = PIXI.textureFrom(sprites[0]);
         this.pixelWidth = sprite.width;
@@ -67,22 +71,71 @@ class Player extends PIXI.AnimatedSprite {
         })
         this.hb = new HitBox(width/3, height/8, width, height)
     }
+
+    renderHand(p: Player) {
+        if (p.hand.count !== 0) {
+            const handWidth = p.inventory.grid.slotWidth;
+            const handMargin = 10;
+            const handXOffset = 40;
+            p.hand.sprite!.x = handMargin+handXOffset;
+            p.hand.sprite!.y = handMargin;
+            p.hand.text!.x = handWidth+handXOffset-p.hand.text!.width;
+            p.hand.text!.y = handMargin+handWidth-p.hand.text!.height;
+            p.handContainer.addChild(p.hand.sprite!);
+            p.handContainer.addChild(p.hand.text!);
+        }
+    }
 }
 
 class Inventory extends PIXI.Container {
     grid: InventoryGrid;
+    playerHand: InventorySlot;
     items: ItemType[];
+    onHandPickup: Function | undefined
 
-    constructor(items: ItemType[]) {
+    constructor(items: ItemType[], playerHand: InventorySlot) {
         super();
-        this.grid = new InventoryGrid(this.handleClick);
+        this.grid = new InventoryGrid(this);
         this.addChild(this.grid);
         this.items = items;
         this.grid.renderAll();
+        this.playerHand = playerHand;
     }
 
     handleClick(row: number, col: number) {
-        console.log("handling a click at r/c", row, col);
+        const slot = this.grid.slots[row][col];
+        if (this.playerHand.count === 0) {
+            if (slot.count !== 0) {
+                this.playerHand.count = slot.count;
+                this.playerHand.item = slot.item;
+                this.playerHand.sprite = new PIXI.Sprite(PIXI.textureFrom(slot.item!.sprite))
+                this.playerHand.text = new PIXI.Text({text: this.playerHand.count.toString(), style:this.grid.textStyle});
+                this.emptySlot(row, col);
+                if (typeof this.onHandPickup != "undefined") {
+                    this.onHandPickup();
+                }
+            }
+        } else if (slot.count === 0) {
+            this.setSlot(row, col, this.playerHand.item!, this.playerHand.count)
+            this.playerHand.count = 0;
+            this.playerHand.item = null;
+            this.playerHand.sprite!.destroy();
+            this.playerHand.sprite = null;
+            this.playerHand.text!.destroy();
+            this.playerHand.text = null;
+        }
+        this.grid.renderSlot(row, col);
+    }
+
+    emptySlot(row: number, col: number) {
+        const slot = this.grid.slots[row][col];
+        slot.count = 0;
+        slot.item = null;
+        slot.sprite!.destroy();
+        slot.sprite = null;
+        slot.text!.destroy();
+        slot.text = null;
+        this.grid.renderAll();
     }
 
     setSlot(row: number, col: number, item: ItemType, count: number) {
@@ -112,20 +165,20 @@ class InventoryGrid extends PIXI.Container {
     slotGap: number;
     slotBorderThickness: number;
     slotLayer: PIXI.Container;
-    clickHandler: Function
+    inv: Inventory;
 
-    constructor(clickHandler: Function) {
+    constructor(inv: Inventory) {
         super();
+        this.inv = inv;
         this.slotWidth = 70;
         this.slots = [];
         this.cols = 8;
-        this.rows = 6;
+        this.rows = 3;
         this.borderThickness = 8
         this.slotGap = 15;
         this.slotBorderThickness = 4
         this.windowMargin = 100;
         this.gridMargin = 10;
-        this.clickHandler = clickHandler;
 
         this.textStyle = new PIXI.TextStyle({
             fontSize: "20px",
@@ -212,7 +265,7 @@ class InventoryGrid extends PIXI.Container {
                     this.fill(0x494949)
                 }
 
-                graphic.onmousedown = () => {this.clickHandler(row, col)};
+                graphic.onmousedown = () => {this.inv.handleClick(row, col)};
                 this.slotLayer.addChild(graphic);
             }
         }
@@ -230,14 +283,14 @@ class InventoryGrid extends PIXI.Container {
 
             // First render the icon
             const slot = this.slots[row][col];
-            slot.sprite!.y = this.windowMargin+this.gridMargin+col*(this.slotWidth+this.slotGap);
-            slot.sprite!.x = this.windowMargin+this.gridMargin+row*(this.slotWidth+this.slotGap);
+            slot.sprite!.x = this.windowMargin+this.gridMargin+col*(this.slotWidth+this.slotGap);
+            slot.sprite!.y = this.windowMargin+this.gridMargin+row*(this.slotWidth+this.slotGap);
             this.addChild(slot.sprite!)
 
             // Then show the text
             this.addChild(slot.text!);
-            slot.text!.y = this.windowMargin+this.gridMargin+col*(this.slotWidth+this.slotGap)+(this.slotWidth-slot.text!.height);
-            slot.text!.x = this.windowMargin+this.gridMargin+row*(this.slotWidth+this.slotGap)+(this.slotWidth-slot.text!.width);
+            slot.text!.x = this.windowMargin+this.gridMargin+col*(this.slotWidth+this.slotGap)+(this.slotWidth-slot.text!.width);
+            slot.text!.y = this.windowMargin+this.gridMargin+row*(this.slotWidth+this.slotGap)+(this.slotWidth-slot.text!.height);
         }
     }
 }
