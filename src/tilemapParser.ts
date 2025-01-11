@@ -1,4 +1,5 @@
 import { CompositeTilemap } from "@pixi/tilemap";
+import { Point } from "pixi.js";
 
 interface Layer {
     data: number[];
@@ -91,6 +92,16 @@ function isLayersData(obj: any): obj is TilemapData {
     );
 }
 
+class ResourceLayer {
+    locations: Point[];
+    resourceName: string;
+    
+    constructor(locations: Point[], resourceName: string) {
+        this.resourceName = resourceName;
+        this.locations = locations;
+    }
+}
+
 class Tilemap extends CompositeTilemap {
 
     baseLayer: VisualLayer;
@@ -98,6 +109,7 @@ class Tilemap extends CompositeTilemap {
     tileUnscaledSize: number
     collisionChunkSize: number;
     visualChunkSize: number;
+    resourceLayers: ResourceLayer[];
 
     constructor(src: Object, tileUnscaledSize: number, collisionChunkSize: number, visualChunkSize: number) {
         super();
@@ -128,6 +140,17 @@ class Tilemap extends CompositeTilemap {
         }
 
         this.baseLayer = new VisualLayer(baseLayer, tileUnscaledSize, visualChunkSize);
+
+        // Find the resource layers
+        this.resourceLayers = [];
+
+        const layers = src.layers.filter(l => l.name.startsWith("resource:"))
+        for (let i=0; i<layers.length; i++) {
+            const layer = new ResourceLayer([], layers[i].name.split(":")[1]!);
+            //@ts-ignore
+            layers[i].objects.forEach(o => layer.locations.push(new Point(Math.floor(o.x), Math.floor(o.y))))
+            this.resourceLayers.push(layer)
+        }
     }
 
     renderVisualChunk(row: number, col: number) {
@@ -213,9 +236,11 @@ class CollisionLayer {
     collisionChunkSize: number;
     layerWidth: number;
     layerHeight: number;
-    tileSize: number
+    tileSize: number;
+    noclipEnabled: boolean;
 
     constructor(layer: ObjectLayer, collisionChunkSize: number, tileSize: number, layerWidth: number, layerHeight: number) {
+        this.noclipEnabled = false;
         this.tileSize = tileSize;
         this.collisionChunkSize = collisionChunkSize;
         this.layerWidth = layerWidth;
@@ -240,6 +265,9 @@ class CollisionLayer {
     }
 
     getPotentialBoxes(hb: HitBox): HitBox[] {
+        if (this.noclipEnabled) {
+            return [];
+        }
 
         const checkChunk = function(chunk: number[], checkedChunks: number[][]): boolean {
             for (let i = 0; i < checkedChunks.length; i++) {

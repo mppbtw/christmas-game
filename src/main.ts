@@ -19,9 +19,15 @@ const map_size = 420;
 const kbd = new Keyboard();
 let hitboxes_enabled = false;
 kbd.addClickHandler("h", () => {hitboxes_enabled = !hitboxes_enabled});
+kbd.addClickHandler("n", () => {
+  tilemap.collisionLayer.noclipEnabled = !tilemap.collisionLayer.noclipEnabled;
+  noclipText.visible = !noclipText.visible;
+})
+
 
 const app = new PIXI.Application();
 await app.init({width: tile_unscaled_size*map_size, height: tile_unscaled_size*map_size, antialias: false, roundPixels: true, backgroundColor: "blue"});
+
 
 const defaultIcon = "url('assets/cursor.png'),auto"
 
@@ -35,6 +41,17 @@ world.width = tile_unscaled_size*map_size;
 world.height = tile_unscaled_size*map_size;
 world.scale = scale_factor;
 app.stage.addChild(world);
+
+let noclipText = new PIXI.Text({
+  text: "Noclip :)",
+  style:{
+    fontFamily:"courier new",
+    fill: 0xffffff,
+    fontSize: "50"
+  },
+})
+noclipText.visible = false;
+app.stage.addChild(noclipText)
 
 document.body.appendChild(app.canvas);
 
@@ -78,25 +95,20 @@ kbd.addClickHandler("e", () => {
 player.craftingMenu.visible = false;
 app.stage.addChild(player.craftingMenu);
 
-let resourceLocations: ResourceMapLocation[] = [];
-resourceLocations.push({
-  x: 0,
-  y: 0,
-  size: 40,
-  hits: 5,
-  resourceCount: 10,
-})
-resourceLocations.push({
-  x: 0,
-  y: 70,
-  size: 50,
-  hits: 5,
-  resourceCount: 10,
+let woodLocations: ResourceMapLocation[] = [];
+tilemap.resourceLayers.find(l => l.resourceName === "wood")!.locations.forEach(location => {
+  woodLocations.push({
+    x: location.x,
+    y: location.y,
+    hits: 5,
+    size: 40,
+    resourceCount: 10,
+  })
 })
 
 const itemsJSON = PIXI.Assets.get("items");
 //@ts-ignore
-let trees = new ResourceMap(resourceLocations, "wood", itemsJSON.items.find((i) => i.name == "wood"), player.inventory, "tree.png");
+let trees = new ResourceMap(woodLocations, "wood", itemsJSON.items.find((i) => i.name == "wood"), player.inventory, "tree.png");
 world.addChild(trees)
 app.ticker.add(() => trees.miningTick());
 
