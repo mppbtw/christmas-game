@@ -5,6 +5,7 @@ import { Tilemap, HitBox} from "./tilemapParser.ts"
 import { Player } from "./player.ts"
 import { Keyboard } from "./keyboardHandler.ts"
 import { StatsHandler } from "./statsHandler.ts"
+import { ResourceMap, ResourceMapLocation } from "./resources.ts"
 
 
 document.querySelector<HTMLDivElement>('#app')!.outerHTML = "<div id='statspanel'></div>";
@@ -52,13 +53,13 @@ await PIXI.Assets.load(["items"])
 await PIXI.Assets.load(["tilemap"])
 
 
-const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 4, 25);
+const tilemap = new Tilemap(PIXI.Assets.get("tilemap"), tile_unscaled_size, 100, 25);
 tilemap.position.set(0, 0);
 world.addChild(tilemap);
 
 const player = new Player(["green_1.png", "green_2.png", "green_3.png"], 12, 16, PIXI.Assets.get("items"));
-player.x = 100;
-player.y = 100;
+player.x = 0;
+player.y = 0;
 player.speed = 1;
 const playerSize = 20
 const playerAspectRatio = player.pixelWidth/player.pixelHeight;
@@ -67,11 +68,37 @@ player.height = playerSize;
 world.addChild(player);
 handleVisualChunks();
 
+player.inventory.visible = false;
 app.stage.addChild(player.inventory);
 app.stage.addChild(player.handContainer);
 kbd.addClickHandler("e", () => {
   player.inventory.visible = !player.inventory.visible;
+  player.craftingMenu.visible = !player.craftingMenu.visible;
 })
+player.craftingMenu.visible = false;
+app.stage.addChild(player.craftingMenu);
+
+let resourceLocations: ResourceMapLocation[] = [];
+resourceLocations.push({
+  x: 0,
+  y: 0,
+  size: 40,
+  hits: 5,
+  resourceCount: 10,
+})
+resourceLocations.push({
+  x: 0,
+  y: 70,
+  size: 50,
+  hits: 5,
+  resourceCount: 10,
+})
+
+const itemsJSON = PIXI.Assets.get("items");
+//@ts-ignore
+let trees = new ResourceMap(resourceLocations, "wood", itemsJSON.items.find((i) => i.name == "wood"), player.inventory, "tree.png");
+world.addChild(trees)
+app.ticker.add(() => trees.miningTick());
 
 const healthBar = new PIXI.Graphics();
 healthBar.alpha = 1;

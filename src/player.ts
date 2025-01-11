@@ -1,26 +1,25 @@
 import * as PIXI from "pixi.js"
 import { HitBox } from "./tilemapParser"
 
-interface ItemType {
+export interface ItemType {
     name: string,
     fancyname: string
     stack: number,
     sprite: string,
     placeable: boolean,
     crafteable: boolean,
-    recipe: string,
+    recipe: [],
 }
 function isItemType(obj: any): obj is ItemType {
     return (
         typeof obj.name === "string" &&
         typeof obj.fancyname === "string" &&
         typeof obj.sprite === "string" &&
-        typeof obj.recipe === "string" &&
         typeof obj.stack === "number" &&
         typeof obj.placeable === "boolean" &&
-        typeof obj.crafteable === "boolean"
+        typeof obj.crafteable === "boolean" &&
+        Array.isArray(obj.recipe)
     )
-
 }
 
 class Player extends PIXI.AnimatedSprite {
@@ -36,6 +35,7 @@ class Player extends PIXI.AnimatedSprite {
     inventory: Inventory;
     hand: InventorySlot;
     handContainer: PIXI.Container;
+    craftingMenu: CraftingMenu;
 
     constructor(sprites: string[], width: number, height: number, itemsData: Object) {
         let textures: PIXI.Texture[] = []
@@ -57,9 +57,17 @@ class Player extends PIXI.AnimatedSprite {
 
         this.hand = new InventorySlot();
         this.handContainer = new PIXI.Container();
-        this.inventory = new Inventory(items, this.hand);
-        this.inventory.setSlot(0, 0, items[0], 100);
+        this.inventory = new Inventory(3, 8, items, this.hand);
+        this.inventory.setSlot(0, 0, items[0], 50);
+        this.inventory.setSlot(0, 1, items[1], 1);
+        this.inventory.setSlot(0, 2, items[2], 50);
         this.inventory.onHandPickup = () => this.renderHand(this);
+        this.inventory.onInventoryUpdate = () => {
+            this.craftingMenu.inventoryCountMap = this.inventory.getItemCount();
+            this.craftingMenu.updateRecipeGrid();
+            this.craftingMenu.recipeGrid.renderAll();
+        }
+        this.craftingMenu = new CraftingMenu(items, this.inventory.getItemCount(), this.handleCraftRequest, this);
 
         const sprite = PIXI.textureFrom(sprites[0]);
         this.pixelWidth = sprite.width;
@@ -70,6 +78,13 @@ class Player extends PIXI.AnimatedSprite {
             }
         })
         this.hb = new HitBox(width/3, height/8, width, height)
+    }
+
+    handleCraftRequest(req: CraftRequest, p: Player) {
+        for (let key of req.ingredients.keys()) {
+            p.inventory.removeItems(key, req.ingredients.get(key)!);
+        }
+        p.inventory.addItems(req.result, 1);
     }
 
     renderHand(p: Player) {
@@ -87,19 +102,195 @@ class Player extends PIXI.AnimatedSprite {
     }
 }
 
+class CraftRequest {
+    ingredients: Map<string, number>;
+    result: ItemType;
+    constructor(ingredients: Map<string, number>, result: ItemType) {
+        this.ingredients = ingredients;
+        this.result = result;
+    }
+}
+
+class CraftingMenu extends PIXI.Container {
+    recipeGrid: InventoryGrid;
+    inventoryCountMap: Map<string, number>;
+    items: ItemType[];
+    handleCraftRequest: Function;
+    player: Player
+
+    constructor(items: ItemType[], inventoryItemCount: Map<string, number>, handleCraftRequest: Function, player: Player) {
+        super();
+        this.items = items;
+        this.player = player;
+        this.handleCraftRequest = handleCraftRequest;
+        this.recipeGrid = new InventoryGrid(6, 6, this);
+        this.inventoryCountMap = inventoryItemCount;
+        this.recipeGrid.x = window.innerWidth-(
+            2*(this.recipeGrid.gridMargin+this.recipeGrid.windowMargin)+
+                (this.recipeGrid.cols*(this.recipeGrid.slotWidth+this.recipeGrid.slotGap)
+                )
+        );
+        this.addChild(this.recipeGrid)
+
+        this.updateRecipeGrid();
+        this.recipeGrid.renderAll();
+    }
+
+    handleClick(row: number, col: number) {
+        console.log("THINGY: ", this.recipeGrid.slots[row][col])
+        if (this.recipeGrid.slots[row][col].crafteableNumber === 0 || typeof this.recipeGrid.slots[row][col].crafteableNumber === "undefined") {
+            return
+        }
+        const slot = this.recipeGrid.slots[row][col];
+        console.log("click at", row, col, "with count", slot.count);
+
+        const ingredients = new Map<string, number>();
+        for (let i =0; i < slot.item!.recipe!.length; i++) {
+            const recipe: String = slot.item!.recipe![i];
+            const item = recipe.split("x")[0];
+            const neededCount = Number.parseInt(recipe.split("x")[1]);
+            ingredients.set(item, neededCount)
+        }
+        this.handleCraftRequest(new CraftRequest(ingredients, slot.item!), this.player)
+    }
+
+    updateRecipeGrid() {
+        let count = 0;
+        for (let i = 0; i < this.items.length; i++) {
+            if (this.items[i].crafteable) {
+
+                this.items[i].recipe
+                const row = Math.floor(count/this.recipeGrid.cols);
+                const col = count % this.recipeGrid.cols;
+
+                this.recipeGrid.slots[row][col].sprite?.destroy();
+                this.recipeGrid.slots[row][col].text?.destroy();
+
+                this.recipeGrid.slots[row][col].sprite = new PIXI.Sprite(PIXI.textureFrom(this.items[i].sprite));
+                this.recipeGrid.slots[row][col].crafteableNumber = this.calculateNumberCrafteable(this.items[i].recipe!);
+                this.recipeGrid.slots[row][col].text = new PIXI.Text({
+                    text: this.recipeGrid.slots[row][col].crafteableNumber.toString(),
+                    style: this.recipeGrid.textStyle,
+                })
+                if (this.recipeGrid.slots[row][col].text.text === "0") {
+                    this.recipeGrid.slots[row][col].sprite.tint = 0x000000
+
+                }
+                this.recipeGrid.slots[row][col].count= 1;
+                this.recipeGrid.slots[row][col].item = this.items[i];
+            }
+        }
+    }
+
+    calculateNumberCrafteable(recipe: String[]): number {
+        let componentItem: String[] = [];
+        let componentCount: number[] = [];
+        let componentCrafteableNumber: number[] = [];
+
+        for (let i = 0; i < recipe.length; i++) {
+            const component = recipe[i];
+            const item = component.split("x")[0];
+            const neededCount = Number.parseInt(component.split("x")[1]);
+            componentItem.push(item);
+            if (this.inventoryCountMap.has(item)) {
+                componentCount.push(this.inventoryCountMap.get(item)!)
+                const crafteableNumber  = Math.floor(componentCount[i]/neededCount);
+                if (Number.isNaN(crafteableNumber)) {
+                    componentCrafteableNumber.push(0);
+                } else {
+                    componentCrafteableNumber.push(Math.floor(componentCount[i]/neededCount))
+                }
+            } else {
+                componentCrafteableNumber.push(0)
+            }
+        }
+        return componentCrafteableNumber.reduce((a, b) => Math.min(a, b));
+    }
+
+}
+
 class Inventory extends PIXI.Container {
     grid: InventoryGrid;
     playerHand: InventorySlot;
     items: ItemType[];
     onHandPickup: Function | undefined
+    onInventoryUpdate: Function | undefined
 
-    constructor(items: ItemType[], playerHand: InventorySlot) {
+    constructor(rows: number, cols: number, items: ItemType[], playerHand: InventorySlot) {
         super();
-        this.grid = new InventoryGrid(this);
+        this.grid = new InventoryGrid(rows, cols, this);
         this.addChild(this.grid);
         this.items = items;
         this.grid.renderAll();
         this.playerHand = playerHand;
+    }
+
+    addItems(item: ItemType, count: number) {
+        let addedSoFar = 0;
+        for (let row = 0; row < this.grid.rows; row++) {
+            for (let col = 0; col < this.grid.cols; col++) {
+                const slot = this.grid.slots[row][col];
+                if (slot.item?.name == item.name) {
+                    if (slot.count !== slot.item!.stack) {
+                        if (slot.count + (count-addedSoFar)  <= slot.item!.stack) {
+                            this.setSlot(row, col, slot.item, slot.count + (count-addedSoFar))
+                            return
+                        }
+                        addedSoFar += count - slot.count;
+                        this.setSlot(row, col, slot.item, slot.item!.stack);
+                    }
+                }
+                if (slot.count === 0) {
+                    if (count-addedSoFar  <= item.stack) {
+                        this.setSlot(row, col, item, slot.count + (count-addedSoFar))
+                        return
+                    }
+                    addedSoFar += count - slot.count;
+                    this.setSlot(row, col, item, item.stack);
+                }
+            }
+        }
+    }
+
+    removeItems(item: string, count: number) {
+        let gottenSoFar = 0;
+        for (let row = 0; row < this.grid.rows; row++) {
+            for (let col = 0; col < this.grid.cols; col++) {
+                const slot = this.grid.slots[row][col];
+                if (slot.item?.name == item) {
+                    if (slot.count == count-gottenSoFar) {
+                        this.emptySlot(row, col);
+                        return;
+                    }
+                    if (slot.count > count-gottenSoFar) {
+                        this.setSlot(row, col, slot.item!, slot.count - count);
+                        return
+                    }
+                    if (slot.count < count-gottenSoFar) {
+                        gottenSoFar += slot.count;
+                        this.emptySlot(row, col);
+                    }
+                }
+            }
+        }
+    }
+
+
+    getItemCount(): Map<string, number> {
+        let map = new Map<string, number>();
+        for (let row = 0; row < this.grid.rows; row++) {
+            for (let col = 0; col < this.grid.cols; col++) {
+                const slot = this.grid.slots[row][col];
+                if (slot.count !== 0) {
+                    if (map.has(slot.item!.name)) {
+                        map.set(slot.item!.name, map.get(slot.item!.name)!+slot.count);
+                    } else {
+                        map.set(slot.item!.name, slot.count);
+                    }
+                }
+            }
+        }
+        return map
     }
 
     handleClick(row: number, col: number) {
@@ -135,6 +326,9 @@ class Inventory extends PIXI.Container {
         slot.sprite = null;
         slot.text!.destroy();
         slot.text = null;
+        if (typeof this.onInventoryUpdate !== "undefined") {
+            this.onInventoryUpdate();
+        }
         this.grid.renderAll();
     }
 
@@ -142,12 +336,20 @@ class Inventory extends PIXI.Container {
         const slot = this.grid.slots[row][col];
         slot.item = item;
         const spriteFile = slot.item!.sprite;
+
+        slot.text?.destroy();
+        slot.sprite?.destroy();
+
         slot.sprite = new PIXI.Sprite(PIXI.textureFrom(spriteFile));
         slot.count = count;
+
         slot.text = new PIXI.Text({
             text: slot.count.toString(),
             style: this.grid.textStyle,
         })
+        if (typeof this.onInventoryUpdate !== "undefined") {
+            this.onInventoryUpdate();
+        }
         this.grid.renderSlot(row, col);
     }
 }
@@ -165,20 +367,20 @@ class InventoryGrid extends PIXI.Container {
     slotGap: number;
     slotBorderThickness: number;
     slotLayer: PIXI.Container;
-    inv: Inventory;
+    inv: any;
 
-    constructor(inv: Inventory) {
+    constructor(rows: number, cols: number, inv: any) {
         super();
         this.inv = inv;
         this.slotWidth = 70;
         this.slots = [];
-        this.cols = 8;
-        this.rows = 3;
         this.borderThickness = 8
         this.slotGap = 15;
         this.slotBorderThickness = 4
         this.windowMargin = 100;
         this.gridMargin = 10;
+        this.rows = rows;
+        this.cols = cols;
 
         this.textStyle = new PIXI.TextStyle({
             fontSize: "20px",
@@ -300,6 +502,7 @@ class InventorySlot {
     count: number = 0;
     sprite: PIXI.Sprite | null = null;
     text: PIXI.Text | null = null;
+    crafteableNumber: number | undefined;
 }
 
-export {Player}
+export {Player, Inventory, InventorySlot}
