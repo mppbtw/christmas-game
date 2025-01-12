@@ -137,12 +137,10 @@ class CraftingMenu extends PIXI.Container {
     }
 
     handleClick(row: number, col: number) {
-        console.log("THINGY: ", this.recipeGrid.slots[row][col])
         if (this.recipeGrid.slots[row][col].crafteableNumber === 0 || typeof this.recipeGrid.slots[row][col].crafteableNumber === "undefined") {
             return
         }
         const slot = this.recipeGrid.slots[row][col];
-        console.log("click at", row, col, "with count", slot.count);
 
         const ingredients = new Map<string, number>();
         for (let i =0; i < slot.item!.recipe!.length; i++) {

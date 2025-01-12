@@ -72,3 +72,14 @@ fs.writeFileSync(spritesOutputDir + "tilemap.json", "{\"layers\":" + JSON.string
 // Copy over the items.json data
 //
 fs.copyFileSync(devAssetsPath + "items.json", spritesOutputDir + "items.json")
+
+//
+// Copy over the audio files
+//
+{
+    const files = (fs.readdirSync(devAssetsPath)).filter((f) => (f !== tileAtlas) && f.endsWith(".wav"));
+
+    files.forEach(f => console.log(f));
+    files.forEach((f) => promises.push(fs.promises.copyFile(devAssetsPath + f, spritesOutputDir + f)));
+    await Promise.all(promises);
+}

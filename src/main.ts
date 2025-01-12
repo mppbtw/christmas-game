@@ -5,7 +5,7 @@ import { Tilemap, HitBox} from "./tilemapParser.ts"
 import { Player } from "./player.ts"
 import { Keyboard } from "./keyboardHandler.ts"
 import { StatsHandler } from "./statsHandler.ts"
-import { ResourceMap, ResourceMapLocation } from "./resources.ts"
+import { ResourceOption, ResourcesManager } from "./resources.ts"
 
 
 document.querySelector<HTMLDivElement>('#app')!.outerHTML = "<div id='statspanel'></div>";
@@ -28,10 +28,9 @@ kbd.addClickHandler("n", () => {
 const app = new PIXI.Application();
 await app.init({width: tile_unscaled_size*map_size, height: tile_unscaled_size*map_size, antialias: false, roundPixels: true, backgroundColor: "blue"});
 
-
-const defaultIcon = "url('assets/cursor.png'),auto"
-
-app.renderer.events.cursorStyles.default = defaultIcon
+document.getElementsByTagName("body")[0].style.cursor = "url('assets/cursor.png'), auto";
+document.getElementsByTagName("body")[0].style.cursor = "url('assets/pickaxe_2.png'), auto";
+document.getElementsByTagName("body")[0].style.cursor = "url('assets/pickaxe_1.png'), auto";
 
 const stats = new StatsHandler(app.renderer);
 kbd.addClickHandler("p", () => {stats.toggle()});
@@ -75,9 +74,9 @@ tilemap.position.set(0, 0);
 world.addChild(tilemap);
 
 const player = new Player(["green_1.png", "green_2.png", "green_3.png"], 12, 16, PIXI.Assets.get("items"));
-player.x = 0;
-player.y = 0;
-player.speed = 1;
+player.x = 400;
+player.y = 1300;
+player.speed = 3;
 const playerSize = 20
 const playerAspectRatio = player.pixelWidth/player.pixelHeight;
 player.width = playerAspectRatio*playerSize;
@@ -95,22 +94,38 @@ kbd.addClickHandler("e", () => {
 player.craftingMenu.visible = false;
 app.stage.addChild(player.craftingMenu);
 
-let woodLocations: ResourceMapLocation[] = [];
-tilemap.resourceLayers.find(l => l.resourceName === "wood")!.locations.forEach(location => {
-  woodLocations.push({
-    x: location.x,
-    y: location.y,
-    hits: 5,
-    size: 40,
-    resourceCount: 10,
-  })
-})
-
 const itemsJSON = PIXI.Assets.get("items");
-//@ts-ignore
-let trees = new ResourceMap(woodLocations, "wood", itemsJSON.items.find((i) => i.name == "wood"), player.inventory, "tree.png");
-world.addChild(trees)
-app.ticker.add(() => trees.miningTick());
+const resourceOptions: ResourceOption[] = [];
+resourceOptions.push({
+  width: 30,
+  height: 30,
+  resourceCount: 1,
+  resourceSprite: "metalrock.png",
+  resourceName: "metalrock",
+  hits: 10,
+  resourceItemName: "metal",
+  miningSound: "stonehit",
+  miningSoundVariants: 3,
+  destroySound: "stonedestroy",
+  destroySoundVariants: 1,
+})
+resourceOptions.push({
+  width: 40,
+  height: 60,
+  resourceCount: 10,
+  resourceSprite: "smalltree.png",
+  resourceName: "smalltree",
+  hits: 5,
+  resourceItemName: "wood",
+  miningSound: "woodchop",
+  miningSoundVariants: 3,
+  destroySound: "wooddestroy",
+  destroySoundVariants: 1,
+});
+let resourceManager = new ResourcesManager(tilemap.resourceLayers, resourceOptions, itemsJSON, player.inventory, app, 1000);
+
+world.addChild(resourceManager)
+app.ticker.add(() => resourceManager.miningTick())
 
 const healthBar = new PIXI.Graphics();
 healthBar.alpha = 1;
