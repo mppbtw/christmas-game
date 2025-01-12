@@ -28,9 +28,9 @@ kbd.addClickHandler("n", () => {
 const app = new PIXI.Application();
 await app.init({width: tile_unscaled_size*map_size, height: tile_unscaled_size*map_size, antialias: false, roundPixels: true, backgroundColor: "blue"});
 
-document.getElementsByTagName("body")[0].style.cursor = "url('assets/cursor.png'), auto";
 document.getElementsByTagName("body")[0].style.cursor = "url('assets/pickaxe_2.png'), auto";
 document.getElementsByTagName("body")[0].style.cursor = "url('assets/pickaxe_1.png'), auto";
+document.getElementsByTagName("body")[0].style.cursor = "url('assets/cursor.png'), auto";
 
 const stats = new StatsHandler(app.renderer);
 kbd.addClickHandler("p", () => {stats.toggle()});
@@ -74,14 +74,16 @@ tilemap.position.set(0, 0);
 world.addChild(tilemap);
 
 const player = new Player(["green_1.png", "green_2.png", "green_3.png"], 12, 16, PIXI.Assets.get("items"));
-player.x = 400;
-player.y = 1300;
 player.speed = 3;
 const playerSize = 20
 const playerAspectRatio = player.pixelWidth/player.pixelHeight;
 player.width = playerAspectRatio*playerSize;
 player.height = playerSize;
 world.addChild(player);
+player.spawnX = 400;
+player.spawnY = 1300;
+player.x = 400;
+player.y = 1300;
 handleVisualChunks();
 
 player.inventory.visible = false;
@@ -93,6 +95,7 @@ kbd.addClickHandler("e", () => {
 })
 player.craftingMenu.visible = false;
 app.stage.addChild(player.craftingMenu);
+app.stage.addChild(player.msgContainer)
 
 const itemsJSON = PIXI.Assets.get("items");
 const resourceOptions: ResourceOption[] = [];
@@ -100,10 +103,10 @@ resourceOptions.push({
   width: 30,
   height: 30,
   resourceCount: 1,
-  resourceSprite: "metalrock.png",
-  resourceName: "metalrock",
+  resourceSprite: "stonerock.png",
+  resourceName: "stonerock",
   hits: 10,
-  resourceItemName: "metal",
+  resourceItemName: "stone",
   miningSound: "stonehit",
   miningSoundVariants: 3,
   destroySound: "stonedestroy",
@@ -122,7 +125,12 @@ resourceOptions.push({
   destroySound: "wooddestroy",
   destroySoundVariants: 1,
 });
-let resourceManager = new ResourcesManager(tilemap.resourceLayers, resourceOptions, itemsJSON, player.inventory, app, 1000);
+let resourceManager = new ResourcesManager(tilemap.resourceLayers,
+  resourceOptions,
+  itemsJSON,
+  player.inventory,
+  app, 100, (msg: string) => player.showMessage(msg)
+);
 
 world.addChild(resourceManager)
 app.ticker.add(() => resourceManager.miningTick())
@@ -144,13 +152,14 @@ app.ticker.add(() => kbd.pressedKeys.forEach(handleKey));
 app.ticker.add(() => {if (!kbd.isWasdPressed()) {player.gotoAndStop(0); player.isMoving = false}});
 app.ticker.add(() => {if (player.isMoving) {handleVisualChunks()}});
 app.ticker.add(renderHitboxes);
+app.ticker.add(() => player.updateMessagePosition())
 app.ticker.add(moveCamera);
 app.ticker.add(renderHealthBar);
 
 function handleVisualChunks() {
   const playerChunkRow = Math.floor((player.y/tile_unscaled_size)/tilemap.baseLayer.chunkSize)
   const playerChunkCol = Math.floor((player.x/tile_unscaled_size)/tilemap.baseLayer.chunkSize)
-  if (player.visualChunkLocation[0] != playerChunkRow && player.visualChunkLocation[1] != playerChunkCol) {
+  if (player.visualChunkLocation[0] != playerChunkRow && player.visualChunkLocation[1] != playerChunkCol && player.spawnY != player.y && player.spawnX != player.x) {
     return
   }
   player.visualChunkLocation = [playerChunkRow, playerChunkCol];

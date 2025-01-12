@@ -23,11 +23,13 @@ function isItemType(obj: any): obj is ItemType {
 }
 
 class Player extends PIXI.AnimatedSprite {
+    msgTexts: PIXI.Text[];
     health: number = 100;
     name: string = "";
     visualChunkLocation: number[] = [0, 0];
     speed: number = 1;
     pixelWidth: number = 0;
+    msgTextStyle: PIXI.TextStyle;
     pixelHeight: number = 0;
     isMoving: boolean = false;
     hitboxSize: number = 12;
@@ -36,6 +38,9 @@ class Player extends PIXI.AnimatedSprite {
     hand: InventorySlot;
     handContainer: PIXI.Container;
     craftingMenu: CraftingMenu;
+    spawnX: number = 0;
+    spawnY: number = 0;
+    msgContainer: PIXI.Container;
 
     constructor(sprites: string[], width: number, height: number, itemsData: Object) {
         let textures: PIXI.Texture[] = []
@@ -44,6 +49,22 @@ class Player extends PIXI.AnimatedSprite {
         })
         super(textures);
         this.animationSpeed = 0.15;
+        this.msgContainer = new PIXI.Container();
+        //@ts-ignore
+        this.msgTextStyle = {
+            fill: 0xFFFFFF,
+            fontFamily: "courier new",
+            fontSize: 40,
+        }
+        this.msgTexts = [];
+        this.showMessage("Welcome Back!")
+        this.showMessage("Welcome Back!")
+        this.showMessage("Welcome Back!")
+        this.showMessage("Welcome Back!")
+        this.showMessage("Welcome Back!")
+        this.showMessage("Welcome Back!")
+        this.showMessage("Welcome Back!")
+
 
         let items: ItemType[] = [];
         // @ts-ignore
@@ -58,9 +79,6 @@ class Player extends PIXI.AnimatedSprite {
         this.hand = new InventorySlot();
         this.handContainer = new PIXI.Container();
         this.inventory = new Inventory(3, 8, items, this.hand);
-        this.inventory.setSlot(0, 0, items[0], 50);
-        this.inventory.setSlot(0, 1, items[1], 1);
-        this.inventory.setSlot(0, 2, items[2], 50);
         this.inventory.onHandPickup = () => this.renderHand(this);
         this.inventory.onInventoryUpdate = () => {
             this.craftingMenu.inventoryCountMap = this.inventory.getItemCount();
@@ -78,13 +96,61 @@ class Player extends PIXI.AnimatedSprite {
             }
         })
         this.hb = new HitBox(width/3, height/8, width, height)
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 50);
+        this.inventory.addItems(items[0], 49);
     }
+
 
     handleCraftRequest(req: CraftRequest, p: Player) {
         for (let key of req.ingredients.keys()) {
             p.inventory.removeItems(key, req.ingredients.get(key)!);
         }
         p.inventory.addItems(req.result, 1);
+    }
+
+    showMessage(text: string) {
+        const t = new PIXI.Text({
+            text: text,
+            style: this.msgTextStyle
+        })
+        t.y = window.innerHeight/2-this.height-t.height;
+        t.x = ((this.width-t.width)/2 + window.innerWidth/2) - this.width/2;
+        this.msgContainer.addChild(t)
+        this.msgTexts.push(t);
+    }
+
+    updateMessagePosition() {
+        for (let i=0; i<this.msgTexts.length; i++) {
+            const t = this.msgTexts[i];
+            t.y -= 1
+            t.alpha -= 0.01
+            if (t.y <= -150) {
+                this.msgTexts.splice(i, 1)
+                t.destroy()
+            }
+        }
     }
 
     renderHand(p: Player) {
@@ -221,6 +287,30 @@ class Inventory extends PIXI.Container {
         this.items = items;
         this.grid.renderAll();
         this.playerHand = playerHand;
+    }
+
+    canFitItems(item: ItemType, count: number): boolean {
+        let addedSoFar = 0;
+        for (let row = 0; row < this.grid.rows; row++) {
+            for (let col = 0; col < this.grid.cols; col++) {
+                const slot = this.grid.slots[row][col];
+                if (slot.item?.name == item.name) {
+                    if (slot.count !== slot.item!.stack) {
+                        if (slot.count + (count-addedSoFar)  <= slot.item!.stack) {
+                            return true
+                        }
+                        addedSoFar += count - slot.count;
+                    }
+                }
+                if (slot.count === 0) {
+                    if (count-addedSoFar  <= item.stack) {
+                        return true
+                    }
+                    addedSoFar += count - slot.count;
+                }
+            }
+        }
+        return false
     }
 
     addItems(item: ItemType, count: number) {

@@ -1779,7 +1779,7 @@
         {
          "draworder":"topdown",
          "id":6,
-         "name":"resource:metalrock",
+         "name":"resource:stonerock",
          "objects":[
                 {
                  "height":0,

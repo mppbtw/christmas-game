@@ -16,14 +16,14 @@
             "sprite": "axe.png",
             "placeable": false,
             "crafteable": true,
-            "recipe": ["woodx10", "metalx3"],
+            "recipe": ["woodx10", "stonex3"],
             "canMine": ["tree"]
         },
         {
-            "name": "metal",
-            "fancyname": "Metal Scraps",
+            "name": "stone",
+            "fancyname": "Stone",
             "stack": 50,
-            "sprite": "metal.png",
+            "sprite": "stone.png",
             "placeable": false,
             "crafteable": false,
             "recipe": []

@@ -24,9 +24,11 @@ class ResourcesManager extends PIXI.Container {
     clicking: boolean;
     timeOfLastMinecraft: number;
     miningSpeedMillis: number;
+    warningMessageHandler: Function;
 
-    constructor(resourceLayers: ResourceLayer[], opts: ResourceOption[], itemsData: Object, itemDestination: Inventory, app: PIXI.Application, miningSpeedMillis: number) {
+    constructor(resourceLayers: ResourceLayer[], opts: ResourceOption[], itemsData: Object, itemDestination: Inventory, app: PIXI.Application, miningSpeedMillis: number, warningMessageHandler: Function) {
         super();
+        this.warningMessageHandler = warningMessageHandler
         this.miningSpeedMillis = miningSpeedMillis;
         this.maps = [];
         this.timeOfLastMinecraft = Date.now();
@@ -78,6 +80,7 @@ class ResourcesManager extends PIXI.Container {
                 resource.miningSoundVariants,
                 resource.destroySound,
                 resource.destroySoundVariants,
+                this.warningMessageHandler,
             );
             this.maps.push(map);
             this.addChild(this.maps[i]);
@@ -128,9 +131,25 @@ class ResourceMap extends PIXI.Container {
     miningSound: string;
     destroySound: string;
     destroySoundVariants: number;
+    warningMessageHandler: Function
 
-    constructor(locations: ResourceMapLocation[], resourceName: string, resourceItem: ItemType, resourceDestination: Inventory, resourceSprite: string, app: PIXI.Application, mouseoverSprite: string, miningHitSprite: string, defaultCursorSprite: string, miningSound: string, miningSoundVariants: number, destroySound: string, destroySoundVariants: number) {
+    constructor(locations: ResourceMapLocation[],
+                resourceName: string,
+                resourceItem: ItemType,
+                resourceDestination: Inventory,
+                resourceSprite: string,
+                app: PIXI.Application,
+                mouseoverSprite: string,
+                miningHitSprite: string,
+                defaultCursorSprite: string,
+                miningSound: string,
+                miningSoundVariants: number,
+                destroySound: string,
+                destroySoundVariants: number,
+                warningMessageHandler: Function
+               ) {
         super();
+        this.warningMessageHandler = warningMessageHandler;
         this.miningSound = miningSound;
         this.destroySound = destroySound;
         this.destroySoundVariants = destroySoundVariants;
@@ -218,13 +237,18 @@ class ResourceMap extends PIXI.Container {
 
         this.locations[this.currentMiningIndex].hits -= 1;
         if (this.locations[this.currentMiningIndex].hits === 0) {
-            this.resourceDestination.addItems(this.resourceItem, this.locations[this.currentMiningIndex].resourceCount);
-            document.getElementsByTagName("body")[0].style.cursor = "url('assets/" + this.defaultCursorSprite + "'), auto";
-            this.mapMask[this.currentMiningIndex].destroy();
-            this.sprites[this.currentMiningIndex].destroy();
-            this.currentMiningIndex = null;
-            this.playDestroySound();
-            this.playMiningSound();
+            if (this.resourceDestination.canFitItems(this.resourceItem, this.locations[this.currentMiningIndex].resourceCount)) {
+                this.resourceDestination.addItems(this.resourceItem, this.locations[this.currentMiningIndex].resourceCount);
+                document.getElementsByTagName("body")[0].style.cursor = "url('assets/" + this.defaultCursorSprite + "'), auto";
+                this.mapMask[this.currentMiningIndex].destroy();
+                this.sprites[this.currentMiningIndex].destroy();
+                this.currentMiningIndex = null;
+                this.playDestroySound();
+                this.playMiningSound();
+            } else {
+                this.warningMessageHandler("Inventory Full!")
+                this.locations[this.currentMiningIndex].hits = 1
+            }
         } else {
             this.playMiningSound();
         }
