@@ -1,3 +1,4 @@
+//@ts-ignore
 import "./style.css"
 import {Snow} from "./snow.ts"
 import * as PIXI from "pixi.js"
