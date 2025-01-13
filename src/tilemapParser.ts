@@ -271,15 +271,6 @@ class CollisionLayer {
             return [];
         }
 
-        const checkChunk = function(chunk: number[], checkedChunks: number[][]): boolean {
-            for (let i = 0; i < checkedChunks.length; i++) {
-                const c = checkedChunks[i];
-                if (c[0] === chunk[0] && c[1] === chunk[0]) {
-                    return false
-                }
-            }
-            return true
-        }
         const topLeft = chunkOf(hb.x, hb.y, this.collisionChunkSize, this.tileSize);
         const topRight = chunkOf(hb.x+hb.width, hb.y, this.collisionChunkSize, this.tileSize);
         const bottomLeft = chunkOf(hb.x, hb.y+hb.height, this.collisionChunkSize, this.tileSize);

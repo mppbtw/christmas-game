@@ -96,30 +96,6 @@ class Player extends PIXI.AnimatedSprite {
             }
         })
         this.hb = new HitBox(width/3, height/8, width, height)
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 50);
-        this.inventory.addItems(items[0], 49);
     }
 
 

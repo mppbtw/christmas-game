@@ -20,6 +20,7 @@ class StatsHandler {
     toggle() {
         if (!this.showing) {
             this.showing = true
+            //@ts-ignore
             const stat = new Stats(this.renderer)
             this.div.appendChild(stat.domElement)
             this.stats.push(stat)

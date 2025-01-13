@@ -74,7 +74,7 @@ tilemap.position.set(0, 0);
 world.addChild(tilemap);
 
 const player = new Player(["green_1.png", "green_2.png", "green_3.png"], 12, 16, PIXI.Assets.get("items"));
-player.speed = 3;
+player.speed = 1.5;
 const playerSize = 20
 const playerAspectRatio = player.pixelWidth/player.pixelHeight;
 player.width = playerAspectRatio*playerSize;
@@ -129,7 +129,7 @@ let resourceManager = new ResourcesManager(tilemap.resourceLayers,
   resourceOptions,
   itemsJSON,
   player.inventory,
-  app, 100, (msg: string) => player.showMessage(msg)
+  app, 1000, (msg: string) => player.showMessage(msg)
 );
 
 world.addChild(resourceManager)
