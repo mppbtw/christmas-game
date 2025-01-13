@@ -1,7 +1,7 @@
 import { defineConfig } from "vite"
 
 export default defineConfig({
-    base: "/src/",
+    base: "/",
     build: {
         target: "esnext",
         rollupOptions: {
