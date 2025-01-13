@@ -7,10 +7,7 @@ import { Player } from "./player.ts"
 import { Keyboard } from "./keyboardHandler.ts"
 import { StatsHandler } from "./statsHandler.ts"
 import { ResourceOption, ResourcesManager } from "./resources.ts"
-import { Howl } from "howler"
 
-const s = new Howl({src: "assets/stonehit_1.wav"});
-s.play();
 document.querySelector<HTMLDivElement>('#stats')!.outerHTML = "<div id='statspanel'></div>";
 
 PIXI.TextureStyle.defaultOptions.scaleMode = "nearest";
@@ -146,7 +143,7 @@ async function allTheStuff() {
                                              resourceOptions,
   itemsJSON,
   player.inventory,
-  app, 1000, (msg: string) => player.showMessage(msg)
+  app, 600, (msg: string) => player.showMessage(msg)
                                             );
 
                                             world.addChild(resourceManager)

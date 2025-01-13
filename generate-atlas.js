@@ -8,9 +8,9 @@ import spritesheet from "@pencil.js/spritesheet";
 
 const devAssetsPath = "dev_assets/";
 const tileAtlas = "tileset.png";
-const tilesOutputDir = "assets/";
+const tilesOutputDir = "public/assets/";
 const tileSize = 16
-const spritesOutputDir = "assets/";
+const spritesOutputDir = "public/assets/";
 
 const img = sharp(devAssetsPath + tileAtlas);
 const meta = await img.metadata();
@@ -58,7 +58,7 @@ const { json, image } = await spritesheet(sprites.map((f) => spritesOutputDir + 
 
 // Write the files (for example)
 fs.writeFileSync(spritesOutputDir + "atlas.png", image);
-fs.writeFileSync(spritesOutputDir + "atlas.json", JSON.stringify(json).replaceAll("assets/", ""));
+fs.writeFileSync(spritesOutputDir + "atlas.json", JSON.stringify(json).replaceAll(spritesOutputDir, ""));
 
 //
 // Copy over a stripped version of the tilemap JSON that Tiled exports to
