@@ -1,7 +1,7 @@
 import { defineConfig } from "vite"
 
 export default defineConfig({
-    base: "/",
+    base: "/christmas-game/",
     build: {
         target: "esnext",
         rollupOptions: {
