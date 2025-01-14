@@ -9,6 +9,8 @@ export interface ItemType {
     placeable: boolean,
     crafteable: boolean,
     recipe: [],
+    canMine: string[],
+    miningStrength: number,
 }
 function isItemType(obj: any): obj is ItemType {
     return (
@@ -58,12 +60,6 @@ class Player extends PIXI.AnimatedSprite {
         }
         this.msgTexts = [];
         this.showMessage("Welcome Back!")
-        this.showMessage("Welcome Back!")
-        this.showMessage("Welcome Back!")
-        this.showMessage("Welcome Back!")
-        this.showMessage("Welcome Back!")
-        this.showMessage("Welcome Back!")
-        this.showMessage("Welcome Back!")
 
 
         let items: ItemType[] = [];
@@ -96,6 +92,7 @@ class Player extends PIXI.AnimatedSprite {
             }
         })
         this.hb = new HitBox(width/3, height/8, width, height)
+        this.inventory.addItems(items[1], 1);
     }
 
 
@@ -292,8 +289,7 @@ class Inventory extends PIXI.Container {
     addItems(item: ItemType, count: number) {
         let addedSoFar = 0;
         for (let row = 0; row < this.grid.rows; row++) {
-            for (let col = 0; col < this.grid.cols; col++) {
-                const slot = this.grid.slots[row][col];
+            for (let col = 0; col < this.grid.cols; col++) { const slot = this.grid.slots[row][col];
                 if (slot.item?.name == item.name) {
                     if (slot.count !== slot.item!.stack) {
                         if (slot.count + (count-addedSoFar)  <= slot.item!.stack) {
@@ -304,6 +300,11 @@ class Inventory extends PIXI.Container {
                         this.setSlot(row, col, slot.item, slot.item!.stack);
                     }
                 }
+            }
+        }
+        for (let row = 0; row < this.grid.rows; row++) {
+            for (let col = 0; col < this.grid.cols; col++) {
+                const slot = this.grid.slots[row][col];
                 if (slot.count === 0) {
                     if (count-addedSoFar  <= item.stack) {
                         this.setSlot(row, col, item, slot.count + (count-addedSoFar))

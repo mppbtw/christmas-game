@@ -132,7 +132,7 @@ async function allTheStuff() {
     resourceCount: 10,
     resourceSprite: "smalltree.png",
     resourceName: "smalltree",
-    hits: 5,
+    hits: 10,
     resourceItemName: "wood",
     miningSound: "woodchop",
     miningSoundVariants: 3,
@@ -143,7 +143,8 @@ async function allTheStuff() {
                                              resourceOptions,
   itemsJSON,
   player.inventory,
-  app, 600, (msg: string) => player.showMessage(msg)
+  app, 600, (msg: string) => player.showMessage(msg),
+  player.hand,
                                             );
 
                                             world.addChild(resourceManager)

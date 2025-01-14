@@ -1,5 +1,5 @@
 import * as PIXI from "pixi.js"
-import { Inventory, ItemType } from "./player";
+import { Inventory, InventorySlot, ItemType } from "./player";
 import { Howl } from "howler";
 import { ResourceLayer } from "./tilemapParser";
 
@@ -25,9 +25,12 @@ class ResourcesManager extends PIXI.Container {
     timeOfLastMinecraft: number;
     miningSpeedMillis: number;
     warningMessageHandler: Function;
+    playerHand: InventorySlot;
+    items: ItemType[];
 
-    constructor(resourceLayers: ResourceLayer[], opts: ResourceOption[], itemsData: Object, itemDestination: Inventory, app: PIXI.Application, miningSpeedMillis: number, warningMessageHandler: Function) {
+    constructor(resourceLayers: ResourceLayer[], opts: ResourceOption[], itemsData: Object, itemDestination: Inventory, app: PIXI.Application, miningSpeedMillis: number, warningMessageHandler: Function, playerHand: InventorySlot) {
         super();
+        this.playerHand = playerHand
         this.warningMessageHandler = warningMessageHandler
         this.miningSpeedMillis = miningSpeedMillis;
         this.maps = [];
@@ -35,6 +38,8 @@ class ResourcesManager extends PIXI.Container {
         this.app = app;
         this.clicking = false;
         this.interactive = true;
+        //@ts-ignore
+        this.items = itemsData.items;
         app.canvas.onmousedown = () => {
             for (let i=0; i<this.maps.length; i++) {
                 if (this.maps[i].currentMiningIndex != null) {
@@ -95,7 +100,11 @@ class ResourcesManager extends PIXI.Container {
         if (Date.now() - this.timeOfLastMinecraft > this.miningSpeedMillis) {
             for (let i=0; i<this.maps.length; i++) {
                 if (this.maps[i].currentMiningIndex != null) {
-                    this.maps[i].mineResource();
+                    if (this.playerHand.item?.canMine.includes(this.maps[i].resourceName)) {
+                        this.maps[i].mineResource(this.playerHand.item?.miningStrength);
+                    } else {
+                        this.maps[i].mineResource(1);
+                    }
                     break;
                 }
             }
@@ -223,7 +232,7 @@ class ResourceMap extends PIXI.Container {
         sound.play();
     }
 
-    mineResource() {
+    mineResource(miningStrength: number) {
         if (this.currentMiningIndex == null) {
             return
         }
@@ -235,8 +244,8 @@ class ResourceMap extends PIXI.Container {
             }
         }, 100);
 
-        this.locations[this.currentMiningIndex].hits -= 1;
-        if (this.locations[this.currentMiningIndex].hits === 0) {
+        this.locations[this.currentMiningIndex].hits -= miningStrength;
+        if (this.locations[this.currentMiningIndex].hits <= 0) {
             if (this.resourceDestination.canFitItems(this.resourceItem, this.locations[this.currentMiningIndex].resourceCount)) {
                 this.resourceDestination.addItems(this.resourceItem, this.locations[this.currentMiningIndex].resourceCount);
                 document.getElementsByTagName("body")[0].style.cursor = "url('assets/" + this.defaultCursorSprite + "'), auto";
