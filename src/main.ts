@@ -97,7 +97,7 @@ async function allTheStuff() {
   player.spawnX = 400;
   player.spawnY = 1300;
   player.x = 400;
-  player.y = 1300;
+  player.y = 1450;
   handleVisualChunks();
 
   player.inventory.visible = false;
@@ -125,11 +125,26 @@ async function allTheStuff() {
     miningSoundVariants: 3,
     destroySound: "stonedestroy",
     destroySoundVariants: 1,
-  })
+    needsTool: true,
+  });
+  resourceOptions.push({
+    width: 20,
+    height: 20,
+    resourceCount: 3,
+    resourceSprite: "coolcrate.png",
+    resourceName: "stonecrate",
+    hits: 2,
+    resourceItemName: "stone",
+    miningSound: "woodchop",
+    miningSoundVariants: 3,
+    destroySound: "wooddestroy",
+    destroySoundVariants: 1,
+    needsTool: false,
+  });
   resourceOptions.push({
     width: 40,
     height: 60,
-    resourceCount: 10,
+    resourceCount: 2,
     resourceSprite: "smalltree.png",
     resourceName: "smalltree",
     hits: 10,
@@ -137,6 +152,35 @@ async function allTheStuff() {
     miningSound: "woodchop",
     miningSoundVariants: 3,
     destroySound: "wooddestroy",
+    needsTool: true,
+    destroySoundVariants: 1,
+  });
+  resourceOptions.push({
+    width: 20,
+    height: 20,
+    resourceCount: 1,
+    resourceSprite: "coolcrate.png",
+    resourceName: "axecrate",
+    hits: 2,
+    resourceItemName: "stoneaxe",
+    miningSound: "woodchop",
+    miningSoundVariants: 3,
+    destroySound: "wooddestroy",
+    destroySoundVariants: 1,
+    needsTool: false,
+  });
+  resourceOptions.push({
+    width: 40,
+    height: 60,
+    resourceCount: 2,
+    resourceSprite: "smalltree.png",
+    resourceName: "spookytree",
+    hits: 1,
+    resourceItemName: "wood",
+    miningSound: "echo",
+    miningSoundVariants: 1,
+    destroySound: "bat",
+    needsTool: false,
     destroySoundVariants: 1,
   });
   let resourceManager = new ResourcesManager(tilemap.resourceLayers,
@@ -144,130 +188,129 @@ async function allTheStuff() {
   itemsJSON,
   player.inventory,
   app, 600, (msg: string) => player.showMessage(msg),
-  player.hand,
-                                            );
+    player.hand, tilemap, player);
 
-                                            world.addChild(resourceManager)
-                                            app.ticker.add(() => resourceManager.miningTick())
+  world.addChild(resourceManager)
+  app.ticker.add(() => resourceManager.miningTick())
 
-                                            const healthBar = new PIXI.Graphics();
-                                            healthBar.alpha = 1;
-                                            app.stage.addChild(healthBar);
+  const healthBar = new PIXI.Graphics();
+  healthBar.alpha = 1;
+  app.stage.addChild(healthBar);
 
-                                            const snowTexture = PIXI.Texture.from("snow.png");
-                                            const snow = new Snow(snowTexture,10, window.innerWidth, window.innerHeight);
-                                            app.stage.addChild(snow);
+  const snowTexture = PIXI.Texture.from("snow.png");
+  const snow = new Snow(snowTexture,10, window.innerWidth, window.innerHeight);
+  app.stage.addChild(snow);
 
-                                            const hbs = new PIXI.Graphics();
-                                            hbs.alpha = 0.5;
-                                            world.addChild(hbs);
+  const hbs = new PIXI.Graphics();
+  hbs.alpha = 0.5;
+  world.addChild(hbs);
 
-                                            app.ticker.add(() => snow.updateSnow());
-                                            app.ticker.add(() => kbd.pressedKeys.forEach(handleKey));
-                                            app.ticker.add(() => {if (!kbd.isWasdPressed()) {player.gotoAndStop(0); player.isMoving = false}});
-                                            app.ticker.add(() => {if (player.isMoving) {handleVisualChunks()}});
-                                            app.ticker.add(renderHitboxes);
-                                            app.ticker.add(() => player.updateMessagePosition())
-                                            app.ticker.add(moveCamera);
-                                            app.ticker.add(renderHealthBar);
+  app.ticker.add(() => snow.updateSnow());
+  app.ticker.add(() => kbd.pressedKeys.forEach(handleKey));
+  app.ticker.add(() => {if (!kbd.isWasdPressed()) {player.gotoAndStop(0); player.isMoving = false}});
+  app.ticker.add(() => {if (player.isMoving) {handleVisualChunks()}});
+  app.ticker.add(renderHitboxes);
+  app.ticker.add(() => player.updateMessagePosition())
+  app.ticker.add(moveCamera);
+  app.ticker.add(renderHealthBar);
 
-                                            function handleVisualChunks() {
-                                              const playerChunkRow = Math.floor((player.y/tile_unscaled_size)/tilemap.baseLayer.chunkSize)
-                                              const playerChunkCol = Math.floor((player.x/tile_unscaled_size)/tilemap.baseLayer.chunkSize)
-                                              if (player.visualChunkLocation[0] != playerChunkRow && player.visualChunkLocation[1] != playerChunkCol && player.spawnY != player.y && player.spawnX != player.x) {
-                                                return
-                                              }
-                                              player.visualChunkLocation = [playerChunkRow, playerChunkCol];
+  function handleVisualChunks() {
+    const playerChunkRow = Math.floor((player.y/tile_unscaled_size)/tilemap.baseLayer.chunkSize)
+    const playerChunkCol = Math.floor((player.x/tile_unscaled_size)/tilemap.baseLayer.chunkSize)
+    if (player.visualChunkLocation[0] != playerChunkRow && player.visualChunkLocation[1] != playerChunkCol && player.spawnY != player.y && player.spawnX != player.x) {
+      return
+    }
+    player.visualChunkLocation = [playerChunkRow, playerChunkCol];
 
-                                              for (let i = -1; i <= 1; i++) {
-                                                for (let j = -1; j <= 1; j++) {
-                                                  try {
-                                                    tilemap.renderVisualChunk(i+playerChunkRow, j+playerChunkCol);
-                                                  } catch (e) {}
-                                                }
-                                              }
-                                            }
+    for (let i = -1; i <= 1; i++) {
+      for (let j = -1; j <= 1; j++) {
+        try {
+          tilemap.renderVisualChunk(i+playerChunkRow, j+playerChunkCol);
+        } catch (e) {}
+      }
+    }
+  }
 
-                                            function renderHealthBar() {
-                                              if (player.health != 100) {
-                                                healthBar.clear();
-                                                const width = 80
-                                                healthBar.rect(window.innerWidth/2-(width/2), (window.innerHeight/2)+player.height*2, width, 10).fill(0xd12121);
-                                                healthBar.rect(window.innerWidth/2-(width/2), (window.innerHeight/2)+player.height*2, width*(player.health/100), 10).fill(0x5cd121);
-                                              }
-                                            }
+  function renderHealthBar() {
+    if (player.health != 100) {
+      healthBar.clear();
+      const width = 80
+      healthBar.rect(window.innerWidth/2-(width/2), (window.innerHeight/2)+player.height*2, width, 10).fill(0xd12121);
+      healthBar.rect(window.innerWidth/2-(width/2), (window.innerHeight/2)+player.height*2, width*(player.health/100), 10).fill(0x5cd121);
+    }
+  }
 
-                                            function renderHitboxes() {
-                                              if (hitboxes_enabled) {
-                                                hbs.clear();
-                                                hbs.rect(player.x+player.hb.x, player.y+player.hb.y, player.hb.width, player.hb.height);
+  function renderHitboxes() {
+    if (hitboxes_enabled) {
+      hbs.clear();
+      hbs.rect(player.x+player.hb.x, player.y+player.hb.y, player.hb.width, player.hb.height);
 
-                                                for (let i = 0; i < Math.floor(tilemap.baseLayer.layerWidth/tilemap.collisionChunkSize); i++) {
-                                                  for (let j = 0; j < Math.floor(tilemap.baseLayer.layerHeight/tilemap.collisionChunkSize); j++) {
-                                                    if (tilemap.collisionLayer.chunks[j] && tilemap.collisionLayer.chunks[j][i]) { 
-                                                      tilemap.collisionLayer.chunks[j][i].boxes.forEach(b => {
-                                                        hbs.rect(b.x, b.y, b.width, b.height);
-                                                      })
-                                                    }
-                                                  }
-                                                }
+      for (let i = 0; i < Math.floor(tilemap.baseLayer.layerWidth/tilemap.collisionChunkSize); i++) {
+        for (let j = 0; j < Math.floor(tilemap.baseLayer.layerHeight/tilemap.collisionChunkSize); j++) {
+          if (tilemap.collisionLayer.chunks[j] && tilemap.collisionLayer.chunks[j][i]) { 
+            tilemap.collisionLayer.chunks[j][i].boxes.forEach(b => {
+              hbs.rect(b.x, b.y, b.width, b.height);
+            })
+          }
+        }
+      }
 
-                                                hbs.fill(0);
+      hbs.fill(0);
 
 
-                                              } else {
-                                                hbs.clear();
-                                              }
-                                            }
+    } else {
+      hbs.clear();
+    }
+  }
 
-                                            function moveCamera() {
-                                              world.position.set(app.renderer.screen.width/2, app.renderer.screen.height/2);
-                                              world.pivot.x = player.position.x+(player.width/2);
-                                              world.pivot.y = player.position.y+(player.height/2);
-                                            }
+  function moveCamera() {
+    world.position.set(app.renderer.screen.width/2, app.renderer.screen.height/2);
+    world.pivot.x = player.position.x+(player.width/2);
+    world.pivot.y = player.position.y+(player.height/2);
+  }
 
-                                            function handleKey(key: string) {
-                                              const playerHB = new HitBox(player.x+player.hb.x, player.y+player.hb.y, player.hb.width, player.hb.height)
-                                              if (key == "w") {
-                                                if (!tilemap.collisionLayer.checkUpCollision(playerHB, player.speed)) {
-                                                  player.y -= player.speed;
-                                                  if (!player.isMoving) {
-                                                    player.isMoving = true;
-                                                  }
-                                                }
-                                              }
-                                              if (key == "s") {
-                                                if (!tilemap.collisionLayer.checkDownCollision(playerHB, player.speed)) {
-                                                  player.y += player.speed;
-                                                  if (!player.isMoving) {
-                                                    player.isMoving = true;
-                                                  }
-                                                }
-                                              }
-                                              if (key == "d") {
-                                                if (!tilemap.collisionLayer.checkRightCollision(playerHB, player.speed)) {
-                                                  player.x += player.speed;
-                                                  if (!player.isMoving) {
-                                                    player.isMoving = true;
-                                                  }
-                                                }
-                                              }
-                                              if (key == "a") {
-                                                if (!tilemap.collisionLayer.checkLeftCollision(playerHB, player.speed)) {
-                                                  player.x -= player.speed;
-                                                  if (!player.isMoving) {
-                                                    player.isMoving = true;
-                                                  }
-                                                }
-                                              }
+  function handleKey(key: string) {
+    const playerHB = new HitBox(player.x+player.hb.x, player.y+player.hb.y, player.hb.width, player.hb.height)
+    if (key == "w") {
+      if (!tilemap.collisionLayer.checkUpCollision(playerHB, player.speed)) {
+        player.y -= player.speed;
+        if (!player.isMoving) {
+          player.isMoving = true;
+        }
+      }
+    }
+    if (key == "s") {
+      if (!tilemap.collisionLayer.checkDownCollision(playerHB, player.speed)) {
+        player.y += player.speed;
+        if (!player.isMoving) {
+          player.isMoving = true;
+        }
+      }
+    }
+    if (key == "d") {
+      if (!tilemap.collisionLayer.checkRightCollision(playerHB, player.speed)) {
+        player.x += player.speed;
+        if (!player.isMoving) {
+          player.isMoving = true;
+        }
+      }
+    }
+    if (key == "a") {
+      if (!tilemap.collisionLayer.checkLeftCollision(playerHB, player.speed)) {
+        player.x -= player.speed;
+        if (!player.isMoving) {
+          player.isMoving = true;
+        }
+      }
+    }
 
-                                              if (player.isMoving) {
-                                                player.play();
-                                                if (player.currentFrame == 0) {
-                                                  player.currentFrame = 1
-                                                }
-                                              } else {
-                                                player.gotoAndStop(0)
-                                              }
-                                            }
+    if (player.isMoving) {
+      player.play();
+      if (player.currentFrame == 0) {
+        player.currentFrame = 1
+      }
+    } else {
+      player.gotoAndStop(0)
+    }
+  }
 }

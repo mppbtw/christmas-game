@@ -1,7 +1,9 @@
 import * as PIXI from "pixi.js"
-import { Inventory, InventorySlot, ItemType } from "./player";
+import { Inventory, InventorySlot, ItemType, Player } from "./player";
 import { Howl } from "howler";
-import { ResourceLayer } from "./tilemapParser";
+import { ResourceLayer, Tilemap } from "./tilemapParser";
+
+const MINING_DISTANCE = 50;
 
 export interface ResourceOption {
     resourceName: string,
@@ -15,6 +17,7 @@ export interface ResourceOption {
     miningSoundVariants: number,
     destroySound: string,
     destroySoundVariants: number,
+    needsTool: boolean,
 }
 
 // This class manages every resource in the game all as one, to be nice and tidy in the main file :)
@@ -28,7 +31,7 @@ class ResourcesManager extends PIXI.Container {
     playerHand: InventorySlot;
     items: ItemType[];
 
-    constructor(resourceLayers: ResourceLayer[], opts: ResourceOption[], itemsData: Object, itemDestination: Inventory, app: PIXI.Application, miningSpeedMillis: number, warningMessageHandler: Function, playerHand: InventorySlot) {
+    constructor(resourceLayers: ResourceLayer[], opts: ResourceOption[], itemsData: Object, itemDestination: Inventory, app: PIXI.Application, miningSpeedMillis: number, warningMessageHandler: Function, playerHand: InventorySlot, tilemap: Tilemap, player: Player) {
         super();
         this.playerHand = playerHand
         this.warningMessageHandler = warningMessageHandler
@@ -43,6 +46,14 @@ class ResourcesManager extends PIXI.Container {
         app.canvas.onmousedown = () => {
             for (let i=0; i<this.maps.length; i++) {
                 if (this.maps[i].currentMiningIndex != null) {
+                    if (this.maps[i].needsTool && !this.playerHand.item?.canMine.includes(this.maps[i].resourceName)) {
+                        break;
+                    }
+                    if (player.distanceTo(
+                        this.maps[i].locations[this.maps[i].currentMiningIndex!].x,
+                        this.maps[i].locations[this.maps[i].currentMiningIndex!].y,)  > MINING_DISTANCE) {
+                        break;
+                    }
                     this.maps[i].playMiningSound();
                     document.getElementsByTagName("body")[0].style.cursor = "url('assets/" + this.maps[i].miningHitSprite + "'), auto";
                     setTimeout(() => {
@@ -59,17 +70,19 @@ class ResourcesManager extends PIXI.Container {
         for (let i=0; i<opts.length; i++) {
             const resource = opts[i];
             let locations: ResourceMapLocation[] = [];
-            const layer = resourceLayers.find(layer => layer.resourceName == resource.resourceName);
-            layer!.locations.forEach(location => {
+            const layer = resourceLayers.find(layer => layer.resourceName == resource.resourceName)!;
+            for (let i=0; i<layer.locations.length; i++) {
+                const location = layer.locations[i];
                 locations.push({
                     resourceCount: resource.resourceCount,
                     width: resource.width,
                     height: resource.height,
                     hits: resource.hits,
                     x: location.x,
-                    y: location.y
+                    y: location.y,
+                    id: layer.ids[i],
                 })
-            })
+            }
             const map = new ResourceMap(
                 locations,
                 resource.resourceName,
@@ -86,6 +99,10 @@ class ResourcesManager extends PIXI.Container {
                 resource.destroySound,
                 resource.destroySoundVariants,
                 this.warningMessageHandler,
+                resource.needsTool,
+                this.playerHand,
+                tilemap,
+                player,
             );
             this.maps.push(map);
             this.addChild(this.maps[i]);
@@ -102,7 +119,7 @@ class ResourcesManager extends PIXI.Container {
                 if (this.maps[i].currentMiningIndex != null) {
                     if (this.playerHand.item?.canMine.includes(this.maps[i].resourceName)) {
                         this.maps[i].mineResource(this.playerHand.item?.miningStrength);
-                    } else {
+                    } else if (!this.maps[i].needsTool){
                         this.maps[i].mineResource(1);
                     }
                     break;
@@ -120,6 +137,7 @@ export interface ResourceMapLocation {
     width: number,
     height: number,
     hits: number,
+    id: any,
 }
 
 class ResourceMap extends PIXI.Container {
@@ -141,6 +159,10 @@ class ResourceMap extends PIXI.Container {
     destroySound: string;
     destroySoundVariants: number;
     warningMessageHandler: Function
+    needsTool: boolean;
+    playerHand: InventorySlot;
+    tilemap: Tilemap;
+    player: Player;
 
     constructor(locations: ResourceMapLocation[],
                 resourceName: string,
@@ -155,10 +177,18 @@ class ResourceMap extends PIXI.Container {
                 miningSoundVariants: number,
                 destroySound: string,
                 destroySoundVariants: number,
-                warningMessageHandler: Function
+                warningMessageHandler: Function,
+                needsTool: boolean,
+                playerHand: InventorySlot,
+                tilemap: Tilemap,
+                player: Player,
                ) {
         super();
+        this.player = player;
+        this.playerHand = playerHand;
         this.warningMessageHandler = warningMessageHandler;
+        this.needsTool = needsTool;
+        this.tilemap = tilemap
         this.miningSound = miningSound;
         this.destroySound = destroySound;
         this.destroySoundVariants = destroySoundVariants;
@@ -178,20 +208,19 @@ class ResourceMap extends PIXI.Container {
         this.currentMiningIndex = null;
         for (let i=0; i<this.locations.length; i++) {
             const graphics = new PIXI.Graphics();
-            graphics.rect(locations[i].x, locations[i].y, locations[i].width, locations[i].height);
+            if (this.resourceName === "smalltree") {
+                graphics.rect(locations[i].x-(locations[i].width/2)*0.8, locations[i].y-locations[i].height*0.8, locations[i].width, locations[i].height);
+            } else {
+                graphics.rect(locations[i].x, locations[i].y, locations[i].width, locations[i].height);
+            }
 
             graphics.onmouseover = () => {
-                document.getElementsByTagName("body")[0].style.cursor = "url('assets/" + this.mouseoverSprite + "'), auto";
-                this.currentMiningIndex = i;
+                if (!(this.needsTool && !this.playerHand.item?.canMine.includes(this.resourceName))) {
+                    document.getElementsByTagName("body")[0].style.cursor = "url('assets/" + this.mouseoverSprite + "'), auto";
+                    this.currentMiningIndex = i;
+                }
             }
             graphics.onmousedown = () => {
-                this.playMiningSound();
-                document.getElementsByTagName("body")[0].style.cursor = "url('assets/" + this.miningHitSprite + "'), auto";
-                setTimeout(() => {
-                    if (document.getElementsByTagName("body")[0].style.cursor == 'url("assets/' + this.miningHitSprite + '"), auto') {
-                        document.getElementsByTagName("body")[0].style.cursor = "url('assets/" + this.mouseoverSprite + "'), auto";
-                    }
-                }, 100);
                 this.currentMiningIndex = i;
             }
             graphics.onmouseup = () => {
@@ -208,11 +237,19 @@ class ResourceMap extends PIXI.Container {
             this.addChild(graphics);
             this.mapMask.push(graphics);
 
-            const sprite = new PIXI.Sprite(PIXI.textureFrom(this.resourceSprite));
-            sprite.x = locations[i].x;
-            sprite.y = locations[i].y;
-            sprite.width = locations[i].width;
-            sprite.height = locations[i].height;
+            const tx = PIXI.textureFrom(this.resourceSprite);
+            const sprite = new PIXI.Sprite(tx);
+            if (this.resourceName === "smalltree") {
+                sprite.x = locations[i].x-(locations[i].width/2)*0.8
+                sprite.y = locations[i].y-locations[i].height*0.8
+                sprite.width = locations[i].width;
+                sprite.height = locations[i].height;
+            } else {
+                sprite.x = locations[i].x
+                sprite.y = locations[i].y
+                sprite.width = locations[i].width;
+                sprite.height = locations[i].height;
+            }
             this.addChild(sprite);
             this.sprites.push(sprite);
         }
@@ -236,6 +273,11 @@ class ResourceMap extends PIXI.Container {
         if (this.currentMiningIndex == null) {
             return
         }
+        if (this.player.distanceTo(
+            this.locations[this.currentMiningIndex!].x,
+        this.locations[this.currentMiningIndex!].y,)  > MINING_DISTANCE) {
+            return;
+        }
 
         document.getElementsByTagName("body")[0].style.cursor = "url('assets/" + this.miningHitSprite + "'), auto";
         setTimeout(() => {
@@ -251,9 +293,9 @@ class ResourceMap extends PIXI.Container {
                 document.getElementsByTagName("body")[0].style.cursor = "url('assets/" + this.defaultCursorSprite + "'), auto";
                 this.mapMask[this.currentMiningIndex].destroy();
                 this.sprites[this.currentMiningIndex].destroy();
-                this.currentMiningIndex = null;
                 this.playDestroySound();
-                this.playMiningSound();
+                this.tilemap.removeHbById(this.locations[this.currentMiningIndex!].id);
+                this.currentMiningIndex = null;
             } else {
                 this.warningMessageHandler("Inventory Full!")
                 this.locations[this.currentMiningIndex].hits = 1

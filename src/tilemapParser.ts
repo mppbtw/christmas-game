@@ -23,6 +23,7 @@ interface TileObject {
     width: number;
     x: number;
     y: number;
+    id: any;
 }
 
 /*
@@ -95,9 +96,11 @@ function isLayersData(obj: any): obj is TilemapData {
 class ResourceLayer {
     locations: Point[];
     resourceName: string;
+    ids: any[];
     
-    constructor(locations: Point[], resourceName: string) {
+    constructor(locations: Point[], resourceName: string, ids: any[]) {
         this.resourceName = resourceName;
+        this.ids = ids;
         this.locations = locations;
     }
 }
@@ -110,6 +113,19 @@ class Tilemap extends CompositeTilemap {
     collisionChunkSize: number;
     visualChunkSize: number;
     resourceLayers: ResourceLayer[];
+
+    removeHbById(id: any) {
+        this.collisionLayer.chunks.forEach(chunkRow => {
+            chunkRow.forEach(chunk => {
+                for (let i=0; i<chunk.ids.length; i++) {
+                    if (chunk.ids[i] == id) {
+                        chunk.ids.splice(i, 1);
+                        chunk.boxes.splice(i, 1);
+                    }
+                }
+            })
+        })
+    }
 
     constructor(src: Object, tileUnscaledSize: number, collisionChunkSize: number, visualChunkSize: number) {
         super();
@@ -124,25 +140,34 @@ class Tilemap extends CompositeTilemap {
             throw "No baselayer found"
         }
 
+
+
+        this.baseLayer = new VisualLayer(baseLayer, tileUnscaledSize, visualChunkSize);
+
         // Find the resource layers
         this.resourceLayers = [];
-
-        const resourceLayers = src.layers.filter(l => l.name.startsWith("resource:"))
-        for (let i=0; i<resourceLayers.length; i++) {
-            const layer = new ResourceLayer([], resourceLayers[i].name.split(":")[1]!);
-            //@ts-ignore
-            resourceLayers[i].objects.forEach(o => layer.locations.push(new Point(Math.floor(o.x), Math.floor(o.y))))
-            this.resourceLayers.push(layer)
-        }
-
         const collisionLayerData = src.layers.find(l => l.name == "Collision");
         if (!collisionLayerData) {
             throw "No collision layer found";
         }
-
         if (!isObjectLayer(collisionLayerData)) {
             throw "Collision layer found, but it's not a valid object layer"
         }
+
+        const resourceLayers = src.layers.filter(l => l.name.startsWith("resource:"))
+        for (let i=0; i<resourceLayers.length; i++) {
+            const layer = new ResourceLayer([], resourceLayers[i].name.split(":")[1]!, []);
+            //@ts-ignore
+            resourceLayers[i].objects.forEach(o => {
+                layer.locations.push(new Point(Math.floor(o.x), Math.floor(o.y)));
+                layer.ids.push(o.id);
+                //@ts-ignore
+                collisionLayerData.objects.push({x:o.x, y: o.y, width: o.width, height:o.height, id: o.id});
+            })
+            this.resourceLayers.push(layer)
+        }
+
+
         
 
         this.collisionLayer = new CollisionLayer(collisionLayerData, collisionChunkSize, this.tileUnscaledSize, baseLayer.width, baseLayer.height);
@@ -150,9 +175,6 @@ class Tilemap extends CompositeTilemap {
         if (typeof this.collisionLayer == "undefined") {
             throw "No collision layer found"
         }
-
-        this.baseLayer = new VisualLayer(baseLayer, tileUnscaledSize, visualChunkSize);
-
     }
 
     renderVisualChunk(row: number, col: number) {
@@ -231,6 +253,7 @@ class HitBox {
 
 class CollisionChunk {
     boxes: HitBox[] = [];
+    ids: any[] = [];
 }
 
 class CollisionLayer {
@@ -259,6 +282,7 @@ class CollisionLayer {
             const row = Math.floor(o.y/(this.collisionChunkSize*tileSize)); 
             const col = Math.floor(o.x/(this.collisionChunkSize*tileSize));
             this.chunks[row][col].boxes.push(new HitBox(o.x, o.y, o.width, o.height));
+            this.chunks[row][col].ids.push(o.id);
         });
     }
 

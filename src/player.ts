@@ -54,7 +54,7 @@ class Player extends PIXI.AnimatedSprite {
         this.msgContainer = new PIXI.Container();
         //@ts-ignore
         this.msgTextStyle = {
-            fill: 0xFFFFFF,
+            fill: 0,
             fontFamily: "courier new",
             fontSize: 40,
         }
@@ -74,7 +74,7 @@ class Player extends PIXI.AnimatedSprite {
 
         this.hand = new InventorySlot();
         this.handContainer = new PIXI.Container();
-        this.inventory = new Inventory(3, 8, items, this.hand);
+        this.inventory = new Inventory(3, 8, items, this.hand, this);
         this.inventory.onHandPickup = () => this.renderHand(this);
         this.inventory.onInventoryUpdate = () => {
             this.craftingMenu.inventoryCountMap = this.inventory.getItemCount();
@@ -92,9 +92,13 @@ class Player extends PIXI.AnimatedSprite {
             }
         })
         this.hb = new HitBox(width/3, height/8, width, height)
-        this.inventory.addItems(items[1], 1);
     }
 
+    distanceTo(x: number, y: number): number {
+        const dX = this.x - x;
+        const dY = this.y - y;
+        return Math.sqrt(Math.pow(dX, 2) + Math.pow(dY, 2));
+    }
 
     handleCraftRequest(req: CraftRequest, p: Player) {
         for (let key of req.ingredients.keys()) {
@@ -166,8 +170,7 @@ class CraftingMenu extends PIXI.Container {
         this.inventoryCountMap = inventoryItemCount;
         this.recipeGrid.x = window.innerWidth-(
             2*(this.recipeGrid.gridMargin+this.recipeGrid.windowMargin)+
-                (this.recipeGrid.cols*(this.recipeGrid.slotWidth+this.recipeGrid.slotGap)
-                )
+                (this.recipeGrid.cols*(this.recipeGrid.slotWidth+this.recipeGrid.slotGap))
         );
         this.addChild(this.recipeGrid)
 
@@ -196,7 +199,6 @@ class CraftingMenu extends PIXI.Container {
         for (let i = 0; i < this.items.length; i++) {
             if (this.items[i].crafteable) {
 
-                this.items[i].recipe
                 const row = Math.floor(count/this.recipeGrid.cols);
                 const col = count % this.recipeGrid.cols;
 
@@ -215,6 +217,7 @@ class CraftingMenu extends PIXI.Container {
                 }
                 this.recipeGrid.slots[row][col].count= 1;
                 this.recipeGrid.slots[row][col].item = this.items[i];
+                count++
             }
         }
     }
@@ -250,15 +253,17 @@ class Inventory extends PIXI.Container {
     grid: InventoryGrid;
     playerHand: InventorySlot;
     items: ItemType[];
-    onHandPickup: Function | undefined
-    onInventoryUpdate: Function | undefined
+    onHandPickup: Function | undefined;
+    onInventoryUpdate: Function | undefined;
+    player: Player;
 
-    constructor(rows: number, cols: number, items: ItemType[], playerHand: InventorySlot) {
+    constructor(rows: number, cols: number, items: ItemType[], playerHand: InventorySlot, player: Player) {
         super();
         this.grid = new InventoryGrid(rows, cols, this);
         this.addChild(this.grid);
         this.items = items;
         this.grid.renderAll();
+        this.player = player;
         this.playerHand = playerHand;
     }
 
@@ -294,6 +299,7 @@ class Inventory extends PIXI.Container {
                     if (slot.count !== slot.item!.stack) {
                         if (slot.count + (count-addedSoFar)  <= slot.item!.stack) {
                             this.setSlot(row, col, slot.item, slot.count + (count-addedSoFar))
+                            this.player.showMessage("+" + count + " " + item.fancyname);
                             return
                         }
                         addedSoFar += count - slot.count;
@@ -308,6 +314,7 @@ class Inventory extends PIXI.Container {
                 if (slot.count === 0) {
                     if (count-addedSoFar  <= item.stack) {
                         this.setSlot(row, col, item, slot.count + (count-addedSoFar))
+                        this.player.showMessage("+" + count + " " + item.fancyname);
                         return
                     }
                     addedSoFar += count - slot.count;

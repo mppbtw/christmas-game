@@ -12,13 +12,13 @@
             "miningStrength": 0
         },
         {
-            "name": "axe",
+            "name": "stoneaxe",
             "fancyname": "Axe",
             "stack": 1,
             "sprite": "axe.png",
             "placeable": false,
             "crafteable": true,
-            "recipe": ["woodx10", "stonex3"],
+            "recipe": ["woodx3", "stonex3"],
             "canMine": ["smalltree"],
             "miningStrength": 3
         },
@@ -32,6 +32,17 @@
             "recipe": [],
             "canMine": [],
             "miningStrength": 0
+        },
+        {
+            "name": "stonepickaxe",
+            "fancyname": "Stone Pickaxe",
+            "stack": 1,
+            "sprite": "pickaxe_1.png",
+            "placeable": false,
+            "crafteable": true,
+            "recipe": ["woodx10", "stonex3"],
+            "canMine": ["stonerock"],
+            "miningStrength": 3
         }
     ]
 }
