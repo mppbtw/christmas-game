@@ -379,6 +379,19 @@ class Inventory extends PIXI.Container {
             this.playerHand.sprite = null;
             this.playerHand.text!.destroy();
             this.playerHand.text = null;
+        } else if (slot.item!.name === this.playerHand.item!.name) {
+            if (this.playerHand.count <= slot.item!.stack - slot.count) {
+                this.setSlot(row, col, slot.item!, slot.count+this.playerHand.count);
+                this.playerHand.count = 0;
+                this.playerHand.item = null;
+                this.playerHand.sprite!.destroy();
+                this.playerHand.sprite = null;
+                this.playerHand.text!.destroy();
+                this.playerHand.text = null;
+            } else {
+                this.setSlot(row, col, slot.item!, slot.item!.stack);
+                this.playerHand.count -= (slot.item!.stack-slot.count);
+            }
         }
         this.grid.renderSlot(row, col);
     }

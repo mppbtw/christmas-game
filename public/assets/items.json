@@ -20,7 +20,7 @@
             "crafteable": true,
             "recipe": ["woodx10", "stonex3"],
             "canMine": ["smalltree"],
-            "miningStrength": 1.7
+            "miningStrength": 3
         },
         {
             "name": "stone",

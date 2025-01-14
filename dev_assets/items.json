@@ -7,7 +7,9 @@
             "sprite": "wood.png",
             "placeable": false,
             "crafteable": false,
-            "recipe": []
+            "recipe": [],
+            "canMine": [],
+            "miningStrength": 0
         },
         {
             "name": "axe",
@@ -17,7 +19,8 @@
             "placeable": false,
             "crafteable": true,
             "recipe": ["woodx10", "stonex3"],
-            "canMine": ["tree"]
+            "canMine": ["smalltree"],
+            "miningStrength": 3
         },
         {
             "name": "stone",
@@ -26,7 +29,9 @@
             "sprite": "stone.png",
             "placeable": false,
             "crafteable": false,
-            "recipe": []
+            "recipe": [],
+            "canMine": [],
+            "miningStrength": 0
         }
     ]
 }
